@@ -64,10 +64,15 @@ export default function EditCompanyModal({ company, onClose, onUpdate }: EditCom
             <span className="text-gray-700">사업자등록번호</span>
             <input
               type="text"
-              className="mt-1 block w-full rounded-md border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100"
+              className={`mt-1 block w-full rounded-md border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 ${
+                businessNumber && businessNumber.replace(/\D/g, '').length !== 11 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
+              }`}
               value={businessNumber}
               onChange={(e) => setBusinessNumber(e.target.value)}
             />
+            {businessNumber && businessNumber.replace(/\D/g, '').length !== 11 && (
+              <p className="text-xs text-red-500 mt-1">사업자등록번호는 11자리 숫자여야 합니다.</p>
+            )}
           </label>
           <label className="block">
             <span className="text-gray-700">소재지</span>

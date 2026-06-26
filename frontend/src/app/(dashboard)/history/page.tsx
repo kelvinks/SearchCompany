@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { companyService, SearchLog } from "@/services/companyService";
 import { formatBusinessNumber } from "@/utils/format";
+import BusinessNumber from "@/components/BusinessNumber";
 
 const formatTime = (isoString: string) => {
   const date = new Date(isoString);
@@ -132,12 +133,16 @@ export default function HistoryPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900 truncate">
-                  {/^[0-9-\s]+$/.test(item.title) ? formatBusinessNumber(item.title) : item.title}
+                  {/^[0-9-\s]+$/.test(item.title) ? (
+                    <BusinessNumber value={item.title} />
+                  ) : (
+                    item.title
+                  )}
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">조회 일시: {formatTime(item.createdAt)}</p>
               </div>
               <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center text-sm font-medium">
-                <span className="text-gray-500">사업자등록번호: <span className="font-mono">{formatBusinessNumber(item.brn || "")}</span></span>
+                <span className="text-gray-500">사업자등록번호: <span className="font-mono"><BusinessNumber value={item.brn || ""} /></span></span>
                 <button className="text-[var(--color-gbsa-primary)] hover:underline flex items-center gap-1">
                   상세 보기 
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>

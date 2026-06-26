@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Company } from "@/data/mockData";
 import DBManageModal from "@/components/modal/DBManageModal";
 import { formatBusinessNumber, extractSiGun } from "@/utils/format";
+import BusinessNumber from "@/components/BusinessNumber";
 import NewCompanyModal from "@/components/modal/NewCompanyModal";
 import { companyService } from "@/services/companyService";
 import { excelService } from "@/services/excelService";
@@ -147,7 +148,9 @@ export default function DatabasePage() {
                       className="hover:bg-gray-50 transition-colors group"
                     >
                       <td className="py-4 px-6 font-medium text-gray-900">{company.companyName}</td>
-                      <td className="py-4 px-6 font-mono text-gray-600">{formatBusinessNumber(company.businessNumber)}</td>
+                      <td className="py-4 px-6 font-mono text-gray-600">
+                        <BusinessNumber value={company.businessNumber} />
+                      </td>
                       <td className="py-4 px-6 text-gray-500">{company.location}</td>
                       <td className="py-4 px-6 text-gray-500">{company.supportField}</td>
                       <td className="py-4 px-6 text-right font-bold text-[var(--color-gbsa-primary)]">

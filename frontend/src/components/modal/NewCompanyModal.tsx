@@ -132,9 +132,14 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                   value={businessNumber} 
                   onChange={(e) => setBusinessNumber(e.target.value)} 
                   required 
-                  placeholder="예: 123-45-67890" 
-                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                  placeholder="예: 123-45-678901" 
+                  className={`w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                    businessNumber && businessNumber.replace(/\D/g, '').length !== 11 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
+                  }`}
                 />
+                {businessNumber && businessNumber.replace(/\D/g, '').length !== 11 && (
+                  <p className="text-xs text-red-500 mt-1 ml-1">사업자등록번호는 11자리 숫자여야 합니다.</p>
+                )}
               </div>
               
               <div>

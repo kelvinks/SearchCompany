@@ -5,6 +5,7 @@ import { Company, SupportHistory } from "@/data/mockData";
 import HistoryModal from "@/components/modal/HistoryModal";
 import { companyService } from "@/services/companyService";
 import { formatBusinessNumber } from "@/utils/format";
+import BusinessNumber from "@/components/BusinessNumber";
 import { matchingService } from "@/services/matchingService";
 import { excelService } from "@/services/excelService";
 
@@ -373,7 +374,9 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="py-4 px-6 font-medium text-gray-900">{company.companyName}</td>
-                    <td className="py-4 px-6 font-mono text-gray-600">{formatBusinessNumber(company.businessNumber)}</td>
+                    <td className="py-4 px-6 font-mono text-gray-600">
+                      <BusinessNumber value={company.businessNumber} />
+                    </td>
                     <td className="py-4 px-6 text-gray-500">{company.location}</td>
                     <td className="py-4 px-6 text-gray-500">{company.supportField}</td>
                     <td className={`py-4 px-6 text-right font-medium ${hasValidHistory ? "text-[var(--color-gbsa-primary)] underline decoration-blue-200 group-hover:decoration-blue-400" : "text-gray-400"}`}>

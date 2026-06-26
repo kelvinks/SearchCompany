@@ -4,6 +4,7 @@ import { Company, SupportHistory } from "@/data/mockData";
 import { useState, useEffect } from "react";
 import { companyService } from "@/services/companyService";
 import { formatBusinessNumber } from "@/utils/format";
+import BusinessNumber from "@/components/BusinessNumber";
 
 
 
@@ -198,7 +199,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-6">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-gray-800 text-lg">
-                {company?.companyName} ({formatBusinessNumber(company?.businessNumber || '')}, {extractSiGun(company?.location || '')})
+                {company?.companyName} (<BusinessNumber value={company?.businessNumber || ''} />, {extractSiGun(company?.location || '')})
               </h4>
               <div className="flex gap-2">
                 {!isEditingCompany && (
@@ -250,7 +251,9 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                     type="text"
                     value={formatBusinessNumber(editBusinessNumber)}
                     readOnly
-                    className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 outline-none bg-gray-100 cursor-not-allowed"
+                    className={`w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 outline-none bg-gray-100 cursor-not-allowed ${
+                      editBusinessNumber.replace(/\D/g, '').length !== 11 ? 'text-red-500 font-semibold' : 'text-gray-700'
+                    }`}
                   />
                 </div>
                 <div>
