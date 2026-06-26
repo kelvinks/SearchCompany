@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gbsa-primary: #1C4691;
+  --color-gbsa-secondary: #2B5CBF;
+  --color-gbsa-bg: #F8F9FA;
+  --color-gbsa-card: #FFFFFF;
+  --color-gbsa-text: #1A202C;
+  --color-status-red: #E53E3E;
+  --color-status-orange: #DD6B20;
+  --color-status-green: #38A169;
+  --color-status-gray: #A0AEC0;
+}
+
+body {
+  background-color: var(--color-gbsa-bg);
+  color: var(--color-gbsa-text);
+  font-family: "Pretendard", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}

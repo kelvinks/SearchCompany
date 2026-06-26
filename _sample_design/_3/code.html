@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en" style=""><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GBSA Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#6d98fe",
+                        "surface-tint": "#365ca8",
+                        "on-primary-container": "#9ab7ff",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2f3036",
+                        "surface-container-highest": "#e2e2e9",
+                        "tertiary-fixed-dim": "#ffb68d",
+                        "on-tertiary-container": "#ffa169",
+                        "surface-container-low": "#f4f3fa",
+                        "on-surface": "#1a1b20",
+                        "on-tertiary-fixed": "#331200",
+                        "on-secondary-container": "#002e76",
+                        "inverse-primary": "#b0c6ff",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#793500",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#001947",
+                        "secondary": "#2759bc",
+                        "primary-fixed": "#d9e2ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#562400",
+                        "primary-container": "#1c4691",
+                        "on-secondary-fixed-variant": "#00419f",
+                        "background": "#faf8ff",
+                        "on-background": "#1a1b20",
+                        "surface-container-high": "#e8e7ee",
+                        "on-tertiary-fixed-variant": "#763300",
+                        "surface-variant": "#e2e2e9",
+                        "on-primary-fixed": "#001944",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#18438e",
+                        "outline-variant": "#c4c6d3",
+                        "on-surface-variant": "#434651",
+                        "tertiary-fixed": "#ffdbc9",
+                        "primary": "#002f72",
+                        "outline": "#747782",
+                        "surface-container": "#eeedf4",
+                        "secondary-fixed": "#dae2ff",
+                        "inverse-on-surface": "#f1f0f7",
+                        "secondary-fixed-dim": "#b1c5ff",
+                        "surface-dim": "#dad9e0",
+                        "surface-bright": "#faf8ff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#faf8ff",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#b0c6ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sidebar-width": "260px",
+                        "stack-gap": "12px",
+                        "container-padding": "24px",
+                        "unit": "4px",
+                        "section-gap": "32px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "mono-data": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-bold": ["Inter"],
+                        "body-base": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "mono-data": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-base": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="text-on-background font-body-base antialiased min-h-screen">
+<div class="fixed inset-0 z-[-2] pointer-events-none overflow-hidden">
+<img alt="Background" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AP1WRLsbTxSLJQoNcaaQIYzKqL0OX3b4XeuxW0uO6eXPSVhI496wiK4-bX-TL3fSY9CxYIF668SvkFc7hm0NLYCCBHCYV4Z3-FU89sj0ycd7Dt1xAXQH812s3AlEtwVyQ790uCDw83QuHK6GamFonm34xmNrinA3knoPXMYM2Y6t9giqC9Ez9UgqdIIiAA2xo9sOsmN7mOo7j6PgO9AWk1H47kNi3DqGQQRa1ZEK8PZ-cj-VCv-lJJ3q_PkZ6bB7"/>
+</div>
+<div class="fixed inset-0 z-[-1] pointer-events-none bg-surface/30"></div>
+<!-- SideNavBar -->
+<aside class="bg-surface/70 backdrop-blur-md w-[260px] h-screen fixed left-0 top-0 shadow-sm flex flex-col h-full border-r border-outline-variant z-20">
+<div class="px-6 py-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">GBSA Enterprise</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Support System</p>
+</div>
+<nav class="flex-1 flex flex-col gap-2 mt-4 font-body-base text-body-base">
+<a class="flex items-center gap-3 px-4 py-3 border-l-4 border-primary bg-primary-container/10 text-primary font-bold" href="#">
+<span class="material-symbols-outlined" style='font-variation-settings: "FILL" 1;'>dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-colors duration-200 active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined">fact_check</span>
+                Validation Results
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-colors duration-200 active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined">database</span>
+                Company Database
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-colors duration-200 active:scale-[0.98] transition-transform mt-auto mb-6" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</nav>
+</aside>
+<!-- TopNavBar -->
+<header class="docked full-width top-0 h-16 bg-surface/70 backdrop-blur-md border-b border-outline-variant flex justify-between items-center w-full px-container-padding ml-[260px] w-[calc(100%-260px)] fixed z-10">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-primary">Gyeonggido Business &amp; Science Accelerator</span>
+</div>
+<div class="flex items-center gap-6 font-body-sm text-body-sm">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<div class="h-8 w-px bg-outline-variant"></div>
+<button class="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+<img class="w-8 h-8 rounded-full object-cover bg-surface-container-highest" data-alt="A professional corporate headshot of a person, well-lit in a modern office setting. The style is clean and matches a high-end enterprise B2B dashboard context." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSsAzhZpvc3IZGivcJL6rYGjNPxiOmClOG6Ei2oLptrBFl9Slj9mKpwJVZAz-4PApEK-LmG9qwBwvSKeV5905WQFQjgrnjjklfp6WvRyUg1guy0pa5hOkwxKp3E05fXg99xQSVDOaY1J1ipcESh6N2KMyOUH-0b6woC2YYD9majOkGjg8APO6RXC5E6RqLI3_yBzMbM1qeqg6SXU4Rs7UuBAhaSUhmxpWsZ3K8O-zbUHTr_4PaYXeyrQGVVvUjeyH6gZ2VC8le9-Nb"/>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="mt-16 p-container-padding flex flex-col gap-section-gap max-w-7xl mx-auto relative z-10 ml-[260px]">
+<!-- Search Section -->
+<section class="w-full flex flex-col items-center pt-8">
+<div class="w-full max-w-3xl relative shadow-sm rounded-lg hover:shadow-md transition-shadow">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-primary text-[28px]">search</span>
+<input class="w-full pl-14 pr-4 py-4 rounded-lg border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary outline-none font-body-base text-body-base text-on-surface placeholder:text-on-surface-variant bg-surface-container-lowest transition-all" placeholder="기업명 또는 사업자등록번호를 입력하세요" type="text"/>
+</div>
+</section>
+<!-- Batch Upload Section -->
+<section class="w-full">
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface mb-stack-gap">Batch Upload</h2>
+<div class="border-2 border-dashed border-primary bg-primary-container/5 rounded-lg p-12 flex flex-col items-center justify-center gap-6 transition-all hover:bg-primary-container/10 group cursor-pointer relative overflow-hidden backdrop-blur-sm">
+<div class="w-16 h-16 bg-surface-container-lowest rounded-full shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary text-[32px]">upload_file</span>
+</div>
+<div class="text-center">
+<p class="font-headline-md text-headline-md font-bold text-on-surface">Drag &amp; Drop files here</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Supported formats: .xlsx, .csv (Max 50MB)</p>
+</div>
+<div class="w-full max-w-xl grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+<div class="flex flex-col gap-1">
+<label class="text-label-bold text-on-surface-variant ml-1">요청기관</label>
+<input class="w-full px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-sm" placeholder="기관명을 입력하세요" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-label-bold text-on-surface-variant ml-1">문서번호</label>
+<input class="w-full px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-sm" placeholder="문서번호를 입력하세요" type="text"/>
+</div>
+<div class="flex flex-col gap-1 md:col-span-2">
+<label class="text-label-bold text-on-surface-variant ml-1">요청내용</label>
+<textarea class="w-full px-4 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary outline-none text-body-sm resize-none" placeholder="요청 내용을 상세히 입력하세요" rows="2"></textarea>
+</div>
+</div><button class="bg-primary-container text-on-primary px-6 py-2.5 rounded-lg font-label-bold text-label-bold hover:bg-primary transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    파일 업로드
+                </button>
+</div>
+</section>
+<!-- Recent Activity Section -->
+<section class="w-full pb-12">
+<div class="flex justify-between items-center mb-stack-gap">
+<h2 class="font-headline-md text-headline-md font-bold text-on-surface">Recent Activity</h2>
+<button class="font-label-bold text-label-bold text-primary hover:underline">View All</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest/90 backdrop-blur-sm border border-outline-variant rounded-lg p-6 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-surface-container-low rounded-lg text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<span class="font-label-bold text-label-bold bg-error-container text-on-error-container px-2 py-1 rounded-full">High Risk</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface truncate">Q3_Funding_Applicants.xlsx</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Processed: 10 mins ago</p><div class="mt-3 flex flex-col gap-2">
+<div class="flex items-center gap-2 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">corporate_fare</span>
+<span class="truncate">요청기관: 경기도청</span>
+</div>
+<div class="flex items-center gap-2 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">tag</span>
+<span>문서번호: GBSA-2024-089</span>
+</div>
+<p class="text-body-sm text-on-surface-variant line-clamp-1 italic">"2024년 하반기 창업지원사업 대상자 검증 요청..."</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant flex justify-between items-center font-mono-data text-mono-data text-on-surface-variant">
+<span class="">452 Rows</span>
+<span class="text-error font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">warning</span> 12 Duplicates</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest/90 backdrop-blur-sm border border-outline-variant rounded-lg p-6 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-surface-container-low rounded-lg text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<span class="font-label-bold text-label-bold bg-primary-fixed text-on-primary-fixed px-2 py-1 rounded-full">Safe</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface truncate">Tech_Startup_List_2023.csv</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Processed: 2 hours ago</p><div class="mt-3 flex flex-col gap-2">
+<div class="flex items-center gap-2 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">corporate_fare</span>
+<span class="truncate">요청기관: 중소벤처기업부</span>
+</div>
+<div class="flex items-center gap-2 text-body-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">tag</span>
+<span>문서번호: MSS-23-V12</span>
+</div>
+<p class="text-body-sm text-on-surface-variant line-clamp-1 italic">"신규 벤처기업 리스트 데이터베이스 동기화..."</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant flex justify-between items-center font-mono-data text-mono-data text-on-surface-variant">
+<span class="">128 Rows</span>
+<span class="text-primary font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> 0 Duplicates</span>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest/90 backdrop-blur-sm border border-outline-variant rounded-lg p-6 flex flex-col gap-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden group">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-surface-container-low rounded-lg text-primary">
+<span class="material-symbols-outlined">manage_search</span>
+</div>
+<span class="font-label-bold text-label-bold bg-surface-variant text-on-surface-variant px-2 py-1 rounded-full">Manual Search</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface truncate">Samsung Electronics Co.</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Searched: Yesterday</p>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant flex justify-between items-center font-mono-data text-mono-data text-on-surface-variant">
+<span class="">BRN: 124-81-00998</span>
+<button class="text-primary hover:underline flex items-center gap-1">View Details <span class="material-symbols-outlined text-[14px]">arrow_forward</span></button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>

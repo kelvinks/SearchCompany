@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Detailed Comparison Modal - GBSA</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-container": "#6d98fe",
+                        "surface-tint": "#365ca8",
+                        "on-primary-container": "#9ab7ff",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2f3036",
+                        "surface-container-highest": "#e2e2e9",
+                        "tertiary-fixed-dim": "#ffb68d",
+                        "on-tertiary-container": "#ffa169",
+                        "surface-container-low": "#f4f3fa",
+                        "on-surface": "#1a1b20",
+                        "on-tertiary-fixed": "#331200",
+                        "on-secondary-container": "#002e76",
+                        "inverse-primary": "#b0c6ff",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#793500",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#001947",
+                        "secondary": "#2759bc",
+                        "primary-fixed": "#d9e2ff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#562400",
+                        "primary-container": "#1c4691",
+                        "on-secondary-fixed-variant": "#00419f",
+                        "background": "#faf8ff",
+                        "on-background": "#1a1b20",
+                        "surface-container-high": "#e8e7ee",
+                        "on-tertiary-fixed-variant": "#763300",
+                        "surface-variant": "#e2e2e9",
+                        "on-primary-fixed": "#001944",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#18438e",
+                        "outline-variant": "#c4c6d3",
+                        "on-surface-variant": "#434651",
+                        "tertiary-fixed": "#ffdbc9",
+                        "primary": "#002f72",
+                        "outline": "#747782",
+                        "surface-container": "#eeedf4",
+                        "secondary-fixed": "#dae2ff",
+                        "inverse-on-surface": "#f1f0f7",
+                        "secondary-fixed-dim": "#b1c5ff",
+                        "surface-dim": "#dad9e0",
+                        "surface-bright": "#faf8ff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#faf8ff",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#b0c6ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sidebar-width": "260px",
+                        "stack-gap": "12px",
+                        "container-padding": "24px",
+                        "unit": "4px",
+                        "section-gap": "32px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "mono-data": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "display-lg-mobile": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-bold": ["Inter"],
+                        "body-base": ["Inter"],
+                        "headline-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "mono-data": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-bold": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "body-base": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="text-on-surface flex min-h-screen overflow-hidden bg-fixed bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida/AP1WRLtDoZ6BAdHX91-K6BYSz79BK5fmNmCahKVMtpd0LRipos81OJ38sO09ACxdGOM-6wEQfYbioNu-CdjWs992KoyxeVuCxwKPTVIU7Kz80NLVC0FZ0Cgj8QumVVr7n9A-8S_oAU8NS-habC38fX78Gibf1gVzHu2sKBMUOrPxHbIvsbXKc_NTZMcirqtn7ZKfUL46-MwDpxMM66QZUfoEkM5WgjD3ELVQJTGqF5OQfaKltEArRvJmISy6Lxw')">
+<div class="fixed inset-0 bg-background/30 backdrop-blur-sm -z-10 pointer-events-none"></div>
+<!-- Side Navigation -->
+<nav class="bg-surface-container-low/70 backdrop-blur-md shadow-sm flex flex-col h-full w-[260px] fixed left-0 top-0 border-r border-outline-variant/30 z-10 hidden md:flex bg-surface/70">
+<div class="px-container-padding py-6 border-b border-outline-variant/30">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">GBSA Enterprise</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Support System</p>
+</div>
+<div class="flex flex-col py-4 flex-1">
+<!-- Active Navigation Item -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-colors duration-200 active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-base text-body-base">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 border-l-4 border-primary bg-primary-container/20 text-primary font-bold hover:bg-surface-container-highest/50 transition-colors duration-200 active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+<span class="font-body-base text-body-base">Validation Results</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-colors duration-200 active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="database">database</span>
+<span class="font-body-base text-body-base">Company Database</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high/50 transition-colors duration-200 active:scale-[0.98] transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-base text-body-base">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-[260px] flex flex-col h-screen relative">
+<!-- Top App Bar -->
+<header class="docked full-width top-0 h-16 bg-surface/70 backdrop-blur-md border-b border-outline-variant/30 flex justify-between items-center w-full px-container-padding z-10 hidden md:flex">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-primary">Gyeonggido Business &amp; Science Accelerator</span>
+</div>
+<div class="flex items-center gap-4">
+<!-- Search could go here -->
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer rounded-full hover:bg-surface-container-high/50 transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer rounded-full hover:bg-surface-container-high/50 transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high/50 border border-outline-variant/30 overflow-hidden cursor-pointer">
+<!-- Placeholder for Avatar -->
+</div>
+</div>
+</header>
+<!-- Background Content (Simulated Table View) -->
+<div aria-hidden="true" class="p-container-padding flex-1 overflow-auto filter blur-sm pointer-events-none bg-surface-container-low/30 backdrop-blur-sm">
+<div class="max-w-6xl mx-auto space-y-section-gap">
+<div class="flex justify-between items-end">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface">Validation Results</h2>
+<p class="font-body-base text-body-base text-on-surface-variant mt-2">Showing suspected duplicates from recent submissions.</p>
+</div>
+</div>
+<!-- Dummy Table structure for background effect -->
+<div class="bg-surface-container-lowest/80 rounded-lg border border-outline-variant/50 shadow-sm overflow-hidden opacity-50 backdrop-blur-sm">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low/80 border-b border-outline-variant/50">
+<tr>
+<th class="py-3 px-4 font-label-bold text-label-bold text-on-surface-variant">ID</th>
+<th class="py-3 px-4 font-label-bold text-label-bold text-on-surface-variant">Company Name</th>
+<th class="py-3 px-4 font-label-bold text-label-bold text-on-surface-variant">Registration No.</th>
+<th class="py-3 px-4 font-label-bold text-label-bold text-on-surface-variant">Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="border-b border-outline-variant/50">
+<td class="py-4 px-4 font-mono-data text-mono-data text-on-surface">REQ-2023-001</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface">Tech Innovators Corp</td>
+<td class="py-4 px-4 font-mono-data text-mono-data text-on-surface">123-45-67890</td>
+<td class="py-4 px-4"><span class="px-2 py-1 rounded bg-error-container text-on-error-container font-label-bold text-label-bold">Duplicate</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- MODAL OVERLAY -->
+<div aria-labelledby="modal-title" aria-modal="true" class="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6 md:ml-[260px] bg-on-surface/40 backdrop-blur-sm" role="dialog">
+<!-- Modal Container -->
+<div class="w-full max-w-5xl bg-surface-container-lowest/95 backdrop-blur-md rounded-xl shadow-[0_12px_24px_-4px_rgba(0,0,0,0.1),_0_0_0_1px_#E2E8F0] flex flex-col max-h-[921px] animate-in fade-in zoom-in-95 duration-200 border border-outline-variant/20">
+<!-- Modal Header -->
+<div class="flex items-center justify-between px-6 py-5 border-b border-outline-variant/50 bg-surface-container-lowest/50 rounded-t-xl shrink-0">
+<div class="flex items-center gap-3">
+<div class="p-2 bg-error-container/80 rounded-lg text-on-error-container flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="compare_arrows">compare_arrows</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface m-0 leading-tight" id="modal-title">중복 지원 상세 비교</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Review flagged similarities to confirm or dismiss duplicate status.</p>
+</div>
+</div>
+<button aria-label="Close modal" class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50 rounded-full transition-colors self-start">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Modal Body (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-6 bg-transparent">
+<!-- 2-Column Layout Container -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter relative">
+<!-- Middle Divider Line (Desktop only) -->
+<div class="hidden lg:block absolute left-1/2 top-0 bottom-0 w-px bg-outline-variant/50 -translate-x-1/2"></div>
+<!-- Left Column: New Application Data -->
+<div class="flex flex-col gap-4 p-5 rounded-lg border-2 border-transparent bg-surface-container-lowest/80 shadow-sm hover:border-primary-fixed transition-colors backdrop-blur-sm">
+<div class="flex items-center gap-2 mb-2 pb-2 border-b border-surface-variant/50">
+<span class="material-symbols-outlined text-primary" data-icon="note_add">note_add</span>
+<h3 class="font-body-base text-body-base font-bold text-on-surface">신규 신청 데이터</h3>
+<span class="ml-auto text-xs bg-surface-container-high/50 px-2 py-1 rounded text-on-surface-variant">REQ-2023-084</span>
+</div>
+<!-- Data Rows -->
+<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">기업명 (Company Name)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface-container-low/50 rounded border border-surface-variant/50">
+                                        ㈜경기테크노밸리
+                                    </div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">사업자등록번호 (Business Registration No.)</span>
+<!-- Highlighted Match -->
+<div class="font-mono-data text-mono-data p-2 rounded border font-bold flex justify-between items-center bg-primary-container/90 text-on-primary border-primary-container shadow-inner">
+<span>123-45-67890</span>
+<span class="material-symbols-outlined text-sm" data-icon="warning" title="Exact Match Flagged">warning</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">대표자 (Representative)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface-container-low/50 rounded border border-surface-variant/50">
+                                        홍길동
+                                    </div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">소재지 (Address)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface-container-low/50 rounded border border-surface-variant/50">
+                                        경기도 수원시 영통구 광교로 107
+                                    </div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">주요 사업 (Main Business)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface-container-low/50 rounded border border-surface-variant/50">
+                                        인공지능 소프트웨어 개발 및 서비스
+                                    </div>
+</div>
+<div class="flex flex-col gap-1 mt-2">
+<span class="font-label-bold text-label-bold text-on-surface-variant">신청 지원금 (Requested Amount)</span>
+<div class="font-mono-data text-mono-data text-on-surface p-2 bg-surface-container-low/50 rounded border border-surface-variant/50">
+                                        ₩ 50,000,000
+                                    </div>
+</div>
+</div>
+</div>
+<!-- Right Column: Existing Database Data -->
+<div class="flex flex-col gap-4 p-5 rounded-lg border-2 border-outline-variant/50 bg-surface-container-lowest/80 shadow-sm relative backdrop-blur-sm">
+<!-- Visual Anchor for comparison target -->
+<div class="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-surface-container-lowest border border-outline-variant/50 rounded-full flex items-center justify-center z-10 hidden lg:flex shadow-sm">
+<span class="material-symbols-outlined text-[14px] text-outline" data-icon="link">link</span>
+</div>
+<div class="flex items-center gap-2 mb-2 pb-2 border-b border-surface-variant/50">
+<span class="material-symbols-outlined text-secondary" data-icon="database">database</span>
+<h3 class="font-body-base text-body-base font-bold text-on-surface">기존 내부 DB 데이터</h3>
+<span class="ml-auto text-xs bg-surface-container-high/50 px-2 py-1 rounded text-on-surface-variant">DB-ORG-9921</span>
+</div>
+<!-- Data Rows -->
+<div class="flex flex-col gap-3">
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">기업명 (Company Name)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface/50 rounded border border-transparent">
+                                        경기테크노밸리 주식회사
+                                    </div>
+<!-- Subtle hint about similarity, not exact match -->
+<div class="text-[10px] text-outline mt-[-4px] ml-1">High similarity score (92%)</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">사업자등록번호 (Business Registration No.)</span>
+<!-- Highlighted Match -->
+<div class="font-mono-data text-mono-data p-2 rounded border font-bold flex justify-between items-center bg-primary-container/90 text-on-primary border-primary-container shadow-inner">
+<span>123-45-67890</span>
+<span class="material-symbols-outlined text-sm" data-icon="check_circle" title="Match Source">check_circle</span>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">대표자 (Representative)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface/50 rounded border border-transparent">
+                                        홍길동
+                                    </div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">소재지 (Address)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface/50 rounded border border-transparent">
+                                        경기도 수원시 영통구 광교로 107 (이의동)
+                                    </div>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-bold text-label-bold text-on-surface-variant">주요 사업 (Main Business)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface/50 rounded border border-transparent">
+                                        소프트웨어 개발 및 공급업
+                                    </div>
+</div>
+<div class="flex flex-col gap-1 mt-2">
+<span class="font-label-bold text-label-bold text-on-surface-variant">최근 지원 이력 (Recent Support)</span>
+<div class="font-body-sm text-body-sm text-on-surface p-2 bg-surface/50 rounded border border-transparent flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+                                        2022년 R&amp;D 자금 지원 (수혜 완료)
+                                    </div>
+</div>
+</div>
+</div>
+</div>
+<!-- Additional Context / System Note -->
+<div class="mt-6 p-4 rounded bg-surface-container-high/50 border-l-4 border-error flex gap-3 backdrop-blur-sm">
+<span class="material-symbols-outlined text-error" data-icon="info">info</span>
+<div>
+<p class="font-label-bold text-label-bold text-on-surface m-0">시스템 분석 결과 (System Analysis)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 m-0">
+                                사업자등록번호가 정확히 일치하며, 대표자명과 소재지가 매우 유사합니다. 동일 기업의 중복 지원 신청일 확률이 99% 이상입니다.
+                            </p>
+</div>
+</div>
+</div>
+<!-- Modal Footer / Actions -->
+<div class="px-6 py-4 border-t border-outline-variant/50 bg-surface-container-lowest/50 rounded-b-xl flex justify-between items-center shrink-0">
+<button class="px-4 py-2 rounded font-label-bold text-label-bold text-on-surface-variant hover:bg-surface-container-high/50 transition-colors border border-outline-variant/50 focus:ring-2 focus:ring-primary focus:outline-none">
+                        닫기 (Close)
+                    </button>
+<div class="flex gap-3">
+<button class="px-4 py-2 rounded font-label-bold text-label-bold text-on-surface hover:bg-surface-container-highest/50 transition-colors border border-outline-variant/50 bg-surface/50 focus:ring-2 focus:ring-primary focus:outline-none">
+                            오탐 처리 (False Alarm / Approve)
+                        </button>
+<button class="px-5 py-2 rounded font-label-bold text-label-bold text-on-primary bg-primary hover:bg-primary-fixed hover:text-on-primary-fixed transition-colors shadow-sm focus:ring-2 focus:ring-primary-container focus:outline-none flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="gavel">gavel</span>
+                            중복 확정 (Confirm Duplicate)
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
