@@ -10,13 +10,13 @@ export default function BusinessNumber({ value, className = "" }: BusinessNumber
   if (!value) return null;
 
   const digits = value.replace(/\D/g, '');
-  const isValid = digits.length === 11;
+  const isValid = digits.length === 10;
 
   if (isValid) {
     return <span className={className}>{formatBusinessNumber(value)}</span>;
   } else {
     return (
-      <span className={`text-red-500 font-semibold ${className}`} title="사업자등록번호는 11자리여야 합니다.">
+      <span className={`text-red-500 font-semibold ${className}`} title="사업자등록번호는 10자리여야 합니다.">
         {value}
       </span>
     );

@@ -10,7 +10,7 @@ export function formatBusinessNumber(value: string): string {
   if (!value) return '';
   // 숫자 이외 모든 문자(하이픈 포함)를 제거한 뒤 재포맷
   const digits = value.replace(/\D/g, '');
-  if (digits.length === 11) {
+  if (digits.length === 10) {
     return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
   }
   return value;

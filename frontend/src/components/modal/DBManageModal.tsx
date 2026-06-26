@@ -252,7 +252,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                     value={formatBusinessNumber(editBusinessNumber)}
                     readOnly
                     className={`w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 outline-none bg-gray-100 cursor-not-allowed ${
-                      editBusinessNumber.replace(/\D/g, '').length !== 11 ? 'text-red-500 font-semibold' : 'text-gray-700'
+                      editBusinessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold' : 'text-gray-700'
                     }`}
                   />
                 </div>
