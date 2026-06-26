@@ -101,16 +101,16 @@ export default function DatabasePage() {
             placeholder="기업명 또는 사업자등록번호 검색..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
+            className="w-full pl-10 pr-4 h-11 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
           />
         </div>
-        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="w-full md:w-48 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-white cursor-pointer transition-all">
+        <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} className="w-full md:w-48 px-4 h-11 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-white cursor-pointer transition-all">
           <option value="">모든 소재지</option>
           {uniqueLocations.map(loc => (
             <option key={loc} value={loc}>{loc}</option>
           ))}
         </select>
-        <select value={fieldFilter} onChange={(e) => setFieldFilter(e.target.value)} className="w-full md:w-48 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-white cursor-pointer transition-all">
+        <select value={fieldFilter} onChange={(e) => setFieldFilter(e.target.value)} className="w-full md:w-48 px-4 h-11 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 text-sm bg-white cursor-pointer transition-all">
           <option value="">모든 지원분야</option>
           {uniqueFields.map(field => (
             <option key={field} value={field}>{field}</option>
