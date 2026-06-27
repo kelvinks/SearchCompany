@@ -13,7 +13,6 @@ async function seedCompanies() {
       location: '경기도 수원시 영통구 광교로 156',
       main_products: 'AI 플랫폼',
       support_field: '소프트웨어/IT',
-      representative: '김선영',
       additional_data: {},
     },
     {
@@ -22,7 +21,6 @@ async function seedCompanies() {
       location: '경기도 성남시 분당구 판교로 289',
       main_products: '헬스케어 디바이스',
       support_field: '바이오/의료',
-      representative: '이민호',
       additional_data: {},
     },
     {
@@ -31,7 +29,6 @@ async function seedCompanies() {
       location: '경기도 용인시 기흥구 흥덕중앙로 120',
       main_products: '자동화 설비',
       support_field: '제조/생산',
-      representative: '박지현',
       additional_data: {},
     },
     {
@@ -40,7 +37,6 @@ async function seedCompanies() {
       location: '경기도 수원시 팔달구 효원로 299',
       main_products: '클라우드 서비스',
       support_field: '소프트웨어/IT',
-      representative: '최준호',
       additional_data: {},
     },
     {
@@ -49,7 +45,6 @@ async function seedCompanies() {
       location: '경기도 성남시 수정구 창업로 42',
       main_products: '바이오 시뮬레이션',
       support_field: '바이오/의료',
-      representative: '한예진',
       additional_data: {},
     },
     {
@@ -58,7 +53,6 @@ async function seedCompanies() {
       location: '경기도 용인시 처인구 백옥대로 1005',
       main_products: '스마트 물류 솔루션',
       support_field: '제조/생산',
-      representative: '오승민',
       additional_data: {},
     },
     {
@@ -67,7 +61,6 @@ async function seedCompanies() {
       location: '경기도 수원시 장안구 송원로 81',
       main_products: '핀테크 플랫폼',
       support_field: '소프트웨어/IT',
-      representative: '신지수',
       additional_data: {},
     },
     {
@@ -76,7 +69,6 @@ async function seedCompanies() {
       location: '경기도 성남시 분당구 대왕판교로 645',
       main_products: '재생 에너지 설비',
       support_field: '제조/생산',
-      representative: '김현우',
       additional_data: {},
     },
     {
@@ -85,7 +77,6 @@ async function seedCompanies() {
       location: '경기도 용인시 수지구 포은대로 512',
       main_products: '의료 데이터 분석',
       support_field: '바이오/의료',
-      representative: '유승아',
       additional_data: {},
     },
     {
@@ -94,7 +85,6 @@ async function seedCompanies() {
       location: '경기도 수원시 권선구 산업로 156',
       main_products: '산업용 로봇',
       support_field: '제조/생산',
-      representative: '정민수',
       additional_data: {},
     },
   ];

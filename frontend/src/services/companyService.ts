@@ -79,7 +79,6 @@ function mapDbCompany(dbCo: any): Company {
     location: dbCo.location || "",
     mainProducts: dbCo.main_products || "",
     supportField: dbCo.support_field || "",
-    representative: dbCo.representative || "",
     matchStatus: "NEW", // Default status, evaluated by matchingService on upload
     matchScore: 0,
     histories: (dbCo.histories || []).map((h: any) => ({
@@ -102,13 +101,11 @@ function mapToDbCompany(co: Partial<Company>) {
   if (co.location !== undefined) dbCo.location = co.location;
   if (co.mainProducts !== undefined) dbCo.main_products = co.mainProducts;
   if (co.supportField !== undefined) dbCo.support_field = co.supportField;
-  if (co.representative !== undefined) dbCo.representative = co.representative;
   
   // Save UI/UX match fields under jsonb additional_data
   const extraFields: any = {};
   if (co.requestedAmount !== undefined) extraFields.requestedAmount = co.requestedAmount;
   if (co.dbCompanyName !== undefined) extraFields.dbCompanyName = co.dbCompanyName;
-  if (co.dbRepresentative !== undefined) extraFields.dbRepresentative = co.dbRepresentative;
   if (co.dbLocation !== undefined) extraFields.dbLocation = co.dbLocation;
   if (co.dbSupportField !== undefined) extraFields.dbSupportField = co.dbSupportField;
   if (co.dbMainProducts !== undefined) extraFields.dbMainProducts = co.dbMainProducts;

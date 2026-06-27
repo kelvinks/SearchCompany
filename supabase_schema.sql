@@ -9,7 +9,6 @@ create table public.companies (
   location varchar(500),
   main_products varchar(500),
   support_field varchar(255),
-  representative varchar(255),
   additional_data jsonb default '{}'::jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

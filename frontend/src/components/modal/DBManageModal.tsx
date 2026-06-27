@@ -28,7 +28,6 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
   const [isEditingCompany, setIsEditingCompany] = useState(false);
   const [editCompanyName, setEditCompanyName] = useState('');
   const [editBusinessNumber, setEditBusinessNumber] = useState('');
-  const [editRepresentative, setEditRepresentative] = useState('');
   const [editAddress, setEditAddress] = useState('');     // 전체 주소 (입력용)
   const [editLocation, setEditLocation] = useState('');   // 시/군 (자동 추출, readonly)
   const [editSupportField, setEditSupportField] = useState('');
@@ -74,7 +73,6 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
       Promise.resolve().then(() => {
         setEditCompanyName(company.companyName);
         setEditBusinessNumber(company.businessNumber);
-        setEditRepresentative(company.representative || '');
         setEditAddress(company.location);                     // 기존 주소를 그대로 주소 입력칸에
         setEditLocation(extractSiGun(company.location));      // 시/군만 추출하여 소재지(readonly)에 설정
         setEditSupportField(company.supportField);
@@ -228,7 +226,6 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                   const updated = await companyService.updateCompany(company.id, {
                     companyName: editCompanyName,
                     businessNumber: editBusinessNumber,
-                    representative: editRepresentative,
                     location: editLocation,
                     supportField: editSupportField,
                     mainProducts: editMainProducts,
@@ -238,7 +235,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                     onClose();
                   }
                 }}
-                className="mt-4 grid grid-cols-4 gap-4"
+                className="mt-4 grid grid-cols-3 gap-4"
               >
                 {/* ── 1행: 기업명 | 사업자등록번호 | 대표자 | 소재지 ── */}
                 <div>
@@ -255,10 +252,6 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                       editBusinessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold' : 'text-gray-700'
                     }`}
                   />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1">대표자</label>
-                  <input type="text" value={editRepresentative} onChange={(e) => setEditRepresentative(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1">

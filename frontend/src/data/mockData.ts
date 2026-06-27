@@ -20,10 +20,8 @@ export type Company = {
   histories: SupportHistory[];
   
   // New fields for comparison (from _1/code.html)
-  representative?: string;
   requestedAmount?: number;
   dbCompanyName?: string;
-  dbRepresentative?: string;
   dbLocation?: string;
   dbSupportField?: string;
   dbMainProducts?: string;
@@ -40,14 +38,12 @@ export const mockCompanies: Company[] = [
     supportField: "SW 개발",
     matchStatus: "EXACT",
     matchScore: 100,
-    representative: "홍길동",
     requestedAmount: 50000000,
     dbCompanyName: "경기테크노밸리 주식회사",
-    dbRepresentative: "홍길동",
     dbLocation: "경기도 수원시 영통구 광교로 107 (이의동)",
     dbSupportField: "소프트웨어 개발 및 공급업",
     dbMainProducts: "인공지능 서비스",
-    systemNote: "사업자등록번호가 정확히 일치하며, 대표자명과 소재지가 매우 유사합니다. 동일 기업의 중복 지원 신청일 확률이 99% 이상입니다.",
+    systemNote: "사업자등록번호가 정확히 일치하며 소재지가 매우 유사합니다. 동일 기업의 중복 지원 신청일 확률이 99% 이상입니다.",
     histories: [
       {
         id: "h1",
@@ -77,14 +73,12 @@ export const mockCompanies: Company[] = [
     supportField: "제조",
     matchStatus: "FUZZY",
     matchScore: 85,
-    representative: "성춘향",
     requestedAmount: 40000000,
     dbCompanyName: "혁신기술 주식회사",
-    dbRepresentative: "이몽룡",
     dbLocation: "경기도 성남시 분당구 대왕판교로 645",
     dbSupportField: "기계 및 로봇 부품 제조업",
     dbMainProducts: "로봇 부품",
-    systemNote: "기업명이 85% 유사하며, 대표자명이 상이하지만 소재지가 인근으로 나타납니다. 동일 기업 혹은 계열사의 우회 지원 여부를 검토하십시오.",
+    systemNote: "기업명이 85% 유사하며 소재지가 인근으로 나타납니다. 동일 기업 혹은 계열사의 우회 지원 여부를 검토하십시오.",
     histories: [
       {
         id: "h3",
@@ -106,9 +100,8 @@ export const mockCompanies: Company[] = [
     supportField: "소재/부품",
     matchStatus: "NEW",
     matchScore: 0,
-    representative: "김유신",
     requestedAmount: 30000000,
-    systemNote: "일치하는 사업자등록번호가 없고 기업명 및 대표자명에 대해서도 내부 DB 내 유사 매칭 항목이 발견되지 않았습니다. 신규 안전 신청 건입니다.",
+    systemNote: "일치하는 사업자등록번호가 없고 기업명에 대해서도 내부 DB 내 유사 매칭 항목이 발견되지 않았습니다. 신규 안전 신청 건입니다.",
     histories: [],
   },
 ];

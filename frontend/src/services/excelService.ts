@@ -44,7 +44,6 @@ export const excelService = {
     return parsedData.map((d, index) => {
       const companyName = d["기업명"] || d["업체명"] || d["회사명"] || d["상호"] || "";
       const businessNumber = d["사업자등록번호"] || d["사업자번호"] || d["등록번호"] || "";
-      const representative = d["대표자"] || d["대표자명"] || d["대표"] || "";
       const location = d["소재지"] || d["주소"] || d["위치"] || "";
       const mainProducts = d["주요제품"] || d["생산품"] || d["제품명"] || "";
       const supportField = d["지원분야"] || d["신청분야"] || d["사업분야"] || "";
@@ -73,7 +72,6 @@ export const excelService = {
         id: `upl-${Date.now()}-${index}`,
         companyName: cleanStr(companyName),
         businessNumber: cleanStr(businessNumber),
-        representative: cleanStr(representative),
         location: cleanStr(location),
         mainProducts: cleanStr(mainProducts),
         supportField: cleanStr(supportField),
@@ -95,7 +93,6 @@ export const excelService = {
       { header: "매칭율", key: "matchScore", width: 12 },
       { header: "신청 기업명", key: "companyName", width: 25 },
       { header: "사업자등록번호", key: "businessNumber", width: 20 },
-      { header: "대표자", key: "representative", width: 12 },
       { header: "소재지", key: "location", width: 40 },
       { header: "지원분야", key: "supportField", width: 15 },
       { header: "기존 DB 기업명", key: "dbCompanyName", width: 25 },
@@ -121,7 +118,6 @@ export const excelService = {
         matchScore: company.matchStatus === "NEW" ? "0%" : `${company.matchScore}%`,
         companyName: company.companyName,
         businessNumber: company.businessNumber,
-        representative: company.representative || "",
         location: company.location,
         supportField: company.supportField,
         dbCompanyName: company.dbCompanyName || "-",
@@ -161,7 +157,6 @@ export const excelService = {
         row.getCell("matchStatus").alignment = { vertical: "middle", horizontal: "center" };
         row.getCell("matchScore").alignment = { vertical: "middle", horizontal: "center" };
         row.getCell("businessNumber").alignment = { vertical: "middle", horizontal: "center" };
-        row.getCell("representative").alignment = { vertical: "middle", horizontal: "center" };
 
         // Color highlighting depending on risk
         const statusVal = row.getCell("matchStatus").value;

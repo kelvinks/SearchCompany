@@ -101,7 +101,7 @@ export default function HistoryModal({
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1">기업명</label>
                   <div className="text-sm font-medium text-gray-900 p-2.5 bg-white rounded-lg border border-gray-200">
-                    {company.companyName}
+                    {company.companyName || "-"}
                   </div>
                 </div>
                 
@@ -109,44 +109,40 @@ export default function HistoryModal({
                   <label className="block text-xs font-bold text-gray-500 mb-1">사업자등록번호</label>
                   {company.matchStatus !== "NEW" ? (
                     <div className="text-sm font-mono font-bold p-2.5 rounded-lg border flex justify-between items-center bg-[var(--color-gbsa-primary)] text-white border-[var(--color-gbsa-primary)] shadow-sm">
-                      <span><BusinessNumber value={company.businessNumber} /></span>
+                      <span>{company.businessNumber ? <BusinessNumber value={company.businessNumber} /> : "-"}</span>
                       <svg className="w-4 h-4 text-orange-300" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     </div>
                   ) : (
                     <div className="text-sm font-mono text-gray-800 p-2.5 bg-white rounded-lg border border-gray-200">
-                      <BusinessNumber value={company.businessNumber} />
+                      {company.businessNumber ? <BusinessNumber value={company.businessNumber} /> : "-"}
                     </div>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">대표자</label>
-                    <div className="text-sm text-gray-800 p-2.5 bg-white rounded-lg border border-gray-200">
-                      {company.representative}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">신청 지원금</label>
-                    <div className="text-sm font-mono text-gray-800 p-2.5 bg-white rounded-lg border border-gray-200">
-                      {company.requestedAmount ? `₩ ${company.requestedAmount.toLocaleString()}` : "-"}
-                    </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">신청 지원금</label>
+                  <div className="text-sm font-mono text-gray-800 p-2.5 bg-white rounded-lg border border-gray-200">
+                    {company.requestedAmount ? `₩ ${company.requestedAmount.toLocaleString()}` : "-"}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1">소재지</label>
                   <div className="text-sm text-gray-800 p-2.5 bg-white rounded-lg border border-gray-200">
-                    {company.location}
+                    {company.location || "-"}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1">주요 제품 / 사업</label>
                   <div className="text-sm text-gray-800 p-2.5 bg-white rounded-lg border border-gray-200">
-                    {company.mainProducts} ({company.supportField})
+                    {company.mainProducts || company.supportField ? (
+                      `${company.mainProducts || "-"} (${company.supportField || "-"})`
+                    ) : (
+                      "-"
+                    )}
                   </div>
                 </div>
               </div>
@@ -171,7 +167,7 @@ export default function HistoryModal({
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1">기업명</label>
                   <div className="text-sm font-medium text-gray-900 p-2.5 bg-white rounded-lg border border-transparent">
-                    {company.dbCompanyName || company.companyName}
+                    {company.dbCompanyName || company.companyName || "-"}
                     {company.matchStatus === "FUZZY" && (
                       <span className="ml-2 text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 font-semibold">
                         유사도 {company.matchScore}%
@@ -184,7 +180,7 @@ export default function HistoryModal({
                   <label className="block text-xs font-bold text-gray-500 mb-1">사업자등록번호</label>
                   {company.matchStatus !== "NEW" ? (
                     <div className="text-sm font-mono font-bold p-2.5 rounded-lg border flex justify-between items-center bg-[var(--color-gbsa-primary)] text-white border-[var(--color-gbsa-primary)] shadow-sm">
-                      <span><BusinessNumber value={company.businessNumber} /></span>
+                      <span>{company.businessNumber ? <BusinessNumber value={company.businessNumber} /> : "-"}</span>
                       <svg className="w-4 h-4 text-green-300" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
@@ -196,39 +192,35 @@ export default function HistoryModal({
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">대표자</label>
-                    <div className={`text-sm p-2.5 bg-white rounded-lg border border-transparent ${company.dbRepresentative && company.dbRepresentative !== company.representative ? "bg-yellow-50 font-semibold" : ""}`}>
-                      {company.dbRepresentative || company.representative}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">최근 지원 이력</label>
-                    <div className="text-sm p-2.5 bg-white rounded-lg border border-transparent text-gray-800">
-                      {company.histories.length > 0 ? (
-                        <div className="flex items-center gap-1.5 truncate">
-                          <span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0"></span>
-                          <span>{company.histories[0].year}년 {company.histories[0].programName}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 font-normal">이력 없음</span>
-                      )}
-                    </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">최근 지원 이력</label>
+                  <div className="text-sm p-2.5 bg-white rounded-lg border border-transparent text-gray-800">
+                    {company.histories.length > 0 ? (
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0"></span>
+                        <span>{company.histories[0].year}년 {company.histories[0].programName}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 font-normal">이력 없음</span>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1">소재지</label>
                   <div className={`text-sm p-2.5 bg-white rounded-lg border border-transparent ${company.dbLocation && company.dbLocation !== company.location ? "bg-yellow-50 font-semibold" : ""}`}>
-                    {company.dbLocation || company.location}
+                    {company.dbLocation || company.location || "-"}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1">주요 제품 / 사업</label>
                   <div className="text-sm p-2.5 bg-white rounded-lg border border-transparent text-gray-800">
-                    {company.dbMainProducts || company.mainProducts} ({company.dbSupportField || company.supportField})
+                    {(company.dbMainProducts || company.mainProducts || company.dbSupportField || company.supportField) ? (
+                      `${company.dbMainProducts || company.mainProducts || "-"} (${company.dbSupportField || company.supportField || "-"})`
+                    ) : (
+                      "-"
+                    )}
                   </div>
                 </div>
               </div>

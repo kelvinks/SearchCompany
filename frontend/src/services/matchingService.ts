@@ -34,10 +34,8 @@ export const matchingService = {
           matchStatus: "EXACT",
           matchScore: 100,
           histories: exactMatch.histories,
-          representative: candidate.representative || "",
           requestedAmount: candidate.requestedAmount,
           dbCompanyName: exactMatch.companyName,
-          dbRepresentative: exactMatch.representative || "",
           dbLocation: exactMatch.location,
           dbSupportField: exactMatch.supportField,
           dbMainProducts: exactMatch.mainProducts,
@@ -62,10 +60,7 @@ export const matchingService = {
         const similarity = Math.round((1 - score) * 100);
 
         if (similarity >= 50) {
-          // Additional check for representative name if available
-          const repNote = (candidate.representative && bestMatch.representative && candidate.representative !== bestMatch.representative)
-            ? ` 대표자명(${candidate.representative} vs ${bestMatch.representative})이 상이하지만`
-            : "";
+
 
           return {
             id: candidate.id || `c-${Date.now()}`,
@@ -77,14 +72,12 @@ export const matchingService = {
             matchStatus: "FUZZY",
             matchScore: similarity,
             histories: bestMatch.histories,
-            representative: candidate.representative || "",
             requestedAmount: candidate.requestedAmount,
             dbCompanyName: bestMatch.companyName,
-            dbRepresentative: bestMatch.representative || "",
             dbLocation: bestMatch.location,
             dbSupportField: bestMatch.supportField,
             dbMainProducts: bestMatch.mainProducts,
-            systemNote: `기업명이 ${similarity}% 유사하며,${repNote} 소재지가 인근일 수 있으므로 동일 기업 혹은 계열사의 우회 지원 여부를 검토하십시오.`,
+            systemNote: `기업명이 ${similarity}% 유사하며, 소재지가 인근일 수 있으므로 동일 기업 혹은 계열사의 우회 지원 여부를 검토하십시오.`,
           };
         }
       }
@@ -101,9 +94,8 @@ export const matchingService = {
       matchStatus: "NEW",
       matchScore: 0,
       histories: [],
-      representative: candidate.representative || "",
       requestedAmount: candidate.requestedAmount,
-      systemNote: "일치하는 사업자등록번호가 없고 기업명 및 대표자명에 대해서도 내부 DB 내 유사 매칭 항목이 발견되지 않았습니다. 신규 안전 신청 건입니다.",
+      systemNote: "일치하는 사업자등록번호가 없고 기업명에 대해서도 내부 DB 내 유사 매칭 항목이 발견되지 않았습니다. 신규 안전 신청 건입니다.",
     };
   },
 

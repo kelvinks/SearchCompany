@@ -15,7 +15,6 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
   // Single Registration State
   const [companyName, setCompanyName] = useState("");
   const [businessNumber, setBusinessNumber] = useState("");
-  const [representative, setRepresentative] = useState("");
   const [address, setAddress] = useState("");
   const [location, setLocation] = useState("");
   const [supportField, setSupportField] = useState("");
@@ -46,7 +45,6 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
       id: `c-${Date.now()}`,
       companyName,
       businessNumber,
-      representative,
       location,
       supportField,
       mainProducts,
@@ -142,16 +140,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                 )}
               </div>
               
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">대표자</label>
-                <input 
-                  type="text" 
-                  value={representative} 
-                  onChange={(e) => setRepresentative(e.target.value)} 
-                  placeholder="예: 홍길동" 
-                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                />
-              </div>
+
               
               {/* Address input (full address) */}
               <div>
