@@ -1,15 +1,39 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/services/supabaseClient";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [userEmail, setUserEmail] = useState("jikang@gbsa.or.kr");
+  const [userName, setUserName] = useState("강정일");
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (supabase) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            setUserEmail(user.email || "jikang@gbsa.or.kr");
+            setUserName(user.user_metadata?.full_name || user.user_metadata?.name || "강정일");
+          }
+        } catch (error) {
+          console.warn("Could not fetch user session from Supabase. Using fallback.", error);
+        }
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const handleLogout = async () => {
     // Delete session cookie and redirect
     document.cookie = "gbsa_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     router.replace("/login");
   };
 
@@ -24,7 +48,7 @@ export default function Sidebar() {
       ),
     },
     {
-      name: "기업 DB 관리",
+      name: "기업DB 관리",
       href: "/database",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,7 +57,7 @@ export default function Sidebar() {
       ),
     },
     {
-      name: "검색 기록",
+      name: "검색기록",
       href: "/history",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,12 +68,18 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside suppressHydrationWarning={true} className="w-64 bg-white/70 backdrop-blur-md text-slate-800 flex flex-col h-screen sticky top-0 shrink-0 border-r border-slate-200/50 shadow-sm z-20">
-      <div className="p-6 border-b border-slate-100 bg-white/35">
-        <h1 className="text-xl font-bold tracking-tight text-[var(--color-gbsa-primary)]">GBSA Enterprise</h1>
-        <p className="text-xs text-slate-500 mt-1">Support System</p>
+    <aside className="w-64 bg-white/70 backdrop-blur-md border-r border-slate-200/50 flex flex-col h-screen sticky top-0 z-20 shrink-0">
+      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white/30">
+        <Link href="/" className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-gbsa-primary)] flex items-center justify-center text-white font-black shadow-md shadow-blue-500/20">
+            G
+          </div>
+          <span className="text-lg font-extrabold bg-gradient-to-r from-[var(--color-gbsa-primary)] to-[var(--color-gbsa-secondary)] bg-clip-text text-transparent tracking-tight">
+            GBSA 중복조회
+          </span>
+        </Link>
       </div>
-      <nav className="flex-1 px-3 space-y-1.5 mt-6">
+      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -73,11 +103,11 @@ export default function Sidebar() {
       <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
         <div className="flex items-center space-x-3 min-w-0">
           <div className="w-9 h-9 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-[var(--color-gbsa-primary)] font-bold text-sm shrink-0">
-            G
+            {userName ? userName.charAt(0) : "G"}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">GBSA 관리자</p>
-            <p className="text-xs text-slate-500 truncate">admin@gbsa.or.kr</p>
+            <p className="text-sm font-semibold text-slate-800 truncate">{userName}</p>
+            <p className="text-xs text-slate-500 truncate">{userEmail}</p>
           </div>
         </div>
         <button 

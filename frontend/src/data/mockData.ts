@@ -1,7 +1,9 @@
 export type SupportHistory = {
   id: string;
+  brn?: string;
   year: string;
   programName: string;
+  projectName?: string;  // 지원과제명 (검색 1순위)
   status: "완료" | "포기" | "제외" | "진행중";
   selectedAmount: number;
   supportAmount: number;
@@ -21,11 +23,19 @@ export type Company = {
   
   // New fields for comparison (from _1/code.html)
   requestedAmount?: number;
+  appliedProgramName?: string;   // 신청 지원사업명 (엑셀/수동 입력)
+  appliedProjectName?: string;   // 신청 지원과제명 (엑셀/수동 입력)
   dbCompanyName?: string;
+  dbBusinessNumber?: string;
   dbLocation?: string;
   dbSupportField?: string;
   dbMainProducts?: string;
   systemNote?: string;
+
+  // Fields for the revised duplicate benefit detection
+  isDuplicateSuspect?: boolean;
+  duplicateReason?: string;
+  overlappingKeywords?: string[];
 };
 
 export const mockCompanies: Company[] = [

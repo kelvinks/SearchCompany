@@ -12,7 +12,7 @@ interface CellObject {
 export const excelService = {
   /**
    * Parses an uploaded Excel file on the client side and extracts company details.
-   * Expects standard columns: 기업명(or 업체명), 사업자등록번호(or 사업자번호), 대표자, 소재지, 주요제품, 지원분야, 신청금액.
+   * Expects standard columns: 기업명(or 업체명), 사업자등록번호(or 사업자번호), 대표자, 소재지, 지원분야, 지원사업명, 지원과제명.
    */
   async parseUploadFile(file: File): Promise<Partial<Company>[]> {
     const arrayBuffer = await file.arrayBuffer();
@@ -45,9 +45,9 @@ export const excelService = {
       const companyName = d["기업명"] || d["업체명"] || d["회사명"] || d["상호"] || "";
       const businessNumber = d["사업자등록번호"] || d["사업자번호"] || d["등록번호"] || "";
       const location = d["소재지"] || d["주소"] || d["위치"] || "";
-      const mainProducts = d["주요제품"] || d["생산품"] || d["제품명"] || "";
       const supportField = d["지원분야"] || d["신청분야"] || d["사업분야"] || "";
-      const requestedAmount = d["신청금액"] || d["선정금액"] || d["지원금액"] || 0;
+      const appliedProgramName = d["지원사업명"] || d["사업명"] || d["지원사업"] || "";
+      const appliedProjectName = d["지원과제명"] || d["과제명"] || d["지원과제"] || "";
 
       // Extract string value from Cell Object if necessary (exceljs sometimes wraps values in objects)
       const cleanStr = (val: unknown): string => {
@@ -59,23 +59,16 @@ export const excelService = {
         return String(val).trim();
       };
 
-      const cleanNum = (val: unknown): number => {
-        if (!val) return 0;
-        if (typeof val === "object") {
-          const obj = val as CellObject;
-          return Number(obj.result || obj.value) || 0;
-        }
-        return Number(val) || 0;
-      };
-
       return {
         id: `upl-${Date.now()}-${index}`,
         companyName: cleanStr(companyName),
         businessNumber: cleanStr(businessNumber),
         location: cleanStr(location),
-        mainProducts: cleanStr(mainProducts),
+        mainProducts: "", // Not used anymore as per user request
         supportField: cleanStr(supportField),
-        requestedAmount: cleanNum(requestedAmount),
+        requestedAmount: 0, // Not used anymore as per user request
+        appliedProgramName: cleanStr(appliedProgramName),
+        appliedProjectName: cleanStr(appliedProjectName),
       };
     });
   },
@@ -95,6 +88,8 @@ export const excelService = {
       { header: "사업자등록번호", key: "businessNumber", width: 20 },
       { header: "소재지", key: "location", width: 40 },
       { header: "지원분야", key: "supportField", width: 15 },
+      { header: "지원사업명", key: "appliedProgramName", width: 25 },
+      { header: "지원과제명", key: "appliedProjectName", width: 25 },
       { header: "기존 DB 기업명", key: "dbCompanyName", width: 25 },
       { header: "유효 누적 지원금액", key: "accumulatedAmount", width: 22 },
       { header: "시스템 분석 메모", key: "systemNote", width: 50 },
@@ -106,11 +101,13 @@ export const excelService = {
         .filter((h) => h.status !== "포기" && h.status !== "제외")
         .reduce((sum, h) => sum + h.supportAmount, 0);
 
-      let matchStatusStr = "신규 기업 (안전)";
-      if (company.matchStatus === "EXACT") {
-        matchStatusStr = "중복 (확정)";
+      let matchStatusStr = "신규 요청 (안전)";
+      if (company.isDuplicateSuspect) {
+        matchStatusStr = "중복 의심 (분야 겹침)";
+      } else if (company.matchStatus === "EXACT") {
+        matchStatusStr = "확인 필요 (DB 등록)";
       } else if (company.matchStatus === "FUZZY") {
-        matchStatusStr = "의심 (유사 매칭)";
+        matchStatusStr = "의심 (유사 사업자번호)";
       }
 
       worksheet.addRow({
@@ -120,6 +117,8 @@ export const excelService = {
         businessNumber: company.businessNumber,
         location: company.location,
         supportField: company.supportField,
+        appliedProgramName: company.appliedProgramName || "-",
+        appliedProjectName: company.appliedProjectName || "-",
         dbCompanyName: company.dbCompanyName || "-",
         accumulatedAmount: validTotal,
         systemNote: company.systemNote || "",
@@ -160,9 +159,11 @@ export const excelService = {
 
         // Color highlighting depending on risk
         const statusVal = row.getCell("matchStatus").value;
-        if (statusVal === "중복 (확정)") {
+        if (statusVal === "중복 의심 (분야 겹침)") {
           row.getCell("matchStatus").font = { color: { argb: "FFE53E3E" }, bold: true }; // Red
-        } else if (statusVal === "의심 (유사 매칭)") {
+        } else if (statusVal === "확인 필요 (DB 등록)") {
+          row.getCell("matchStatus").font = { color: { argb: "FF3182CE" }, bold: true }; // Blue
+        } else if (statusVal === "의심 (유사 사업자번호)") {
           row.getCell("matchStatus").font = { color: { argb: "FFDD6B20" }, bold: true }; // Orange
         } else {
           row.getCell("matchStatus").font = { color: { argb: "FF38A169" }, bold: true }; // Green

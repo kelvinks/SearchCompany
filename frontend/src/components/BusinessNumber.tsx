@@ -7,7 +7,7 @@ interface BusinessNumberProps {
 }
 
 export default function BusinessNumber({ value, className = "" }: BusinessNumberProps) {
-  if (!value) return null;
+  if (!value || value === "undefined" || value === "null") return null;
 
   const digits = value.replace(/\D/g, '');
   const isValid = digits.length === 10;

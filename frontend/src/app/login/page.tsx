@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/services/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,22 +11,42 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    // Mock login delay
-    setTimeout(() => {
+    if (!supabase) {
+      setError("데이터베이스 연결 설정이 되어 있지 않습니다.");
       setIsLoading(false);
-      if (email === "admin@gbsa.or.kr" && password === "admin") {
+      return;
+    }
+
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        if (authError.message === "Invalid login credentials") {
+          setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+        } else if (authError.message.includes("Email not confirmed")) {
+          setError("이메일 인증이 완료되지 않았습니다. 관리자 인증 여부를 확인해주세요.");
+        } else {
+          setError(authError.message);
+        }
+      } else if (data.user) {
         // Set session cookie valid for 1 day
         document.cookie = "gbsa_session=true; path=/; max-age=86400";
         router.replace("/");
-      } else {
-        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
       }
-    }, 800);
+    } catch (err: any) {
+      setError("로그인 중 서버와 연결할 수 없거나 오류가 발생했습니다.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -58,27 +79,37 @@ export default function LoginPage() {
         )}
 
         <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">이메일 (관리자 계정)</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="admin@gbsa.or.kr"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--color-gbsa-secondary)] focus:border-transparent outline-none transition-all"
-            />
+          <div className="relative">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">아이디 (이메일)</label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              </span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="email 주소를 입력하세요"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--color-gbsa-secondary)] focus:border-transparent outline-none transition-all"
+              />
+            </div>
           </div>
-          <div>
+          <div className="relative">
             <label className="block text-sm font-semibold text-gray-700 mb-1">비밀번호</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--color-gbsa-secondary)] focus:border-transparent outline-none transition-all"
-            />
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              </span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="패스워드를 입력하세요"
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--color-gbsa-secondary)] focus:border-transparent outline-none transition-all"
+              />
+            </div>
           </div>
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center text-gray-600 cursor-pointer">

@@ -10,6 +10,24 @@ interface NewCompanyModalProps {
 }
 
 export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps) {
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow;
+    const mainEl = document.querySelector("main");
+    const originalMainOverflow = mainEl ? mainEl.style.overflow : "";
+
+    document.body.style.overflow = "hidden";
+    if (mainEl) {
+      mainEl.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      if (mainEl) {
+        mainEl.style.overflow = originalMainOverflow;
+      }
+    };
+  }, []);
+
   const [activeTab, setActiveTab] = useState<"SINGLE" | "BULK">("SINGLE");
 
   // Single Registration State
@@ -83,7 +101,16 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
       <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
-          <h2 className="text-xl font-bold text-[var(--color-gbsa-primary)]">신규 기업 등록</h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-blue-50 rounded-xl text-[var(--color-gbsa-primary)] flex items-center justify-center">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[var(--color-gbsa-primary)] leading-tight">신규 기업 등록</h2>
+            </div>
+          </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -111,71 +138,94 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
         <div className="p-6">
           {activeTab === "SINGLE" ? (
             <form id="newCompanyForm" onSubmit={handleSingleSubmit} className="space-y-5">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">기업명 <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
-                  value={companyName} 
-                  onChange={(e) => setCompanyName(e.target.value)} 
-                  required 
-                  placeholder="예: (주)테스트기업" 
-                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  </span>
+                  <input 
+                    type="text" 
+                    value={companyName} 
+                    onChange={(e) => setCompanyName(e.target.value)} 
+                    required 
+                    placeholder="예: (주)테스트기업" 
+                    className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                  />
+                </div>
               </div>
               
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">사업자등록번호 <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
-                  value={businessNumber} 
-                  onChange={(e) => setBusinessNumber(e.target.value)} 
-                  required 
-                  placeholder="예: 123-45-67890" 
-                  className={`w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
-                    businessNumber && businessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
-                  }`}
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  </span>
+                  <input 
+                    type="text" 
+                    value={businessNumber} 
+                    onChange={(e) => setBusinessNumber(e.target.value)} 
+                    required 
+                    placeholder="예: 123-45-67890" 
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                      businessNumber && businessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
+                    }`}
+                  />
+                </div>
                 {businessNumber && businessNumber.replace(/\D/g, '').length !== 10 && (
                   <p className="text-xs text-red-500 mt-1 ml-1">사업자등록번호는 10자리 숫자여야 합니다.</p>
                 )}
               </div>
               
-
-              
               {/* Address input (full address) */}
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">주소</label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="예: 경기도 수원시 영통구 세무서로 123"
-                  className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+                  </span>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="예: 경기도 수원시 영통구 세무서로 123"
+                    className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                  />
+                </div>
               </div>
               {/* Hidden location derived from address */}
               <input type="hidden" value={location} />
               
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">주요 사업(지원분야)</label>
-                  <input 
-                    type="text" 
-                    value={supportField} 
-                    onChange={(e) => setSupportField(e.target.value)} 
-                    placeholder="예: SW 개발" 
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </span>
+                    <input 
+                      type="text" 
+                      value={supportField} 
+                      onChange={(e) => setSupportField(e.target.value)} 
+                      placeholder="예: SW 개발" 
+                      className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                    />
+                  </div>
                 </div>
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">주요 제품</label>
-                  <input 
-                    type="text" 
-                    value={mainProducts} 
-                    onChange={(e) => setMainProducts(e.target.value)} 
-                    placeholder="예: AI 솔루션" 
-                    className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    </span>
+                    <input 
+                      type="text" 
+                      value={mainProducts} 
+                      onChange={(e) => setMainProducts(e.target.value)} 
+                      placeholder="예: AI 솔루션" 
+                      className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                    />
+                  </div>
                 </div>
               </div>
             </form>

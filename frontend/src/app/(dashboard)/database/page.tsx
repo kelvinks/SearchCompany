@@ -3,24 +3,43 @@
 import { useState, useEffect } from "react";
 import { Company } from "@/data/mockData";
 import DBManageModal from "@/components/modal/DBManageModal";
-import { formatBusinessNumber, extractSiGun } from "@/utils/format";
+import DeletedDBManageModal from "@/components/modal/DeletedDBManageModal";
+import { extractSiGun } from "@/utils/format";
 import BusinessNumber from "@/components/BusinessNumber";
 import NewCompanyModal from "@/components/modal/NewCompanyModal";
 import { companyService } from "@/services/companyService";
 import { excelService } from "@/services/excelService";
+import { supabase } from "@/services/supabaseClient";
 
 export default function DatabasePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [deletedCompanies, setDeletedCompanies] = useState<(Company & { deletedAt?: string })[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedDeletedCompany, setSelectedDeletedCompany] = useState<(Company & { deletedAt?: string }) | null>(null);
   const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false);
   const [locationFilter, setLocationFilter] = useState("");
   const [fieldFilter, setFieldFilter] = useState("");
+  
+  const [isSuperUser, setIsSuperUser] = useState(false);
+  const [activeTab, setActiveTab] = useState<"active" | "deleted">("active");
 
   useEffect(() => {
+    const checkSuperUser = async () => {
+      if (supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user && user.user_metadata?.role === "superuser") {
+          setIsSuperUser(true);
+        }
+      }
+    };
+    checkSuperUser();
+
     const loadData = async () => {
       const data = await companyService.getCompanies();
       setCompanies(data);
+      const deletedData = await companyService.getDeletedCompanies();
+      setDeletedCompanies(deletedData);
     };
     loadData();
   }, []);
@@ -45,17 +64,21 @@ export default function DatabasePage() {
   const handleRefresh = async () => {
     const data = await companyService.getCompanies();
     setCompanies(data);
+    const deletedData = await companyService.getDeletedCompanies();
+    setDeletedCompanies(deletedData);
   };
 
+  const currentSourceList = activeTab === "active" ? companies : deletedCompanies;
+
   const uniqueLocations = Array.from(
-    new Set(companies.map(c => extractSiGun(c.location)).filter(Boolean))
+    new Set(currentSourceList.map(c => extractSiGun(c.location)).filter(Boolean))
   ).sort();
 
   const uniqueFields = Array.from(
-    new Set(companies.map(c => c.supportField).filter(Boolean))
+    new Set(currentSourceList.map(c => c.supportField).filter(Boolean))
   ).sort();
 
-  const filteredCompanies = companies.filter((c) => {
+  const filteredCompanies = currentSourceList.filter((c) => {
     const matchesSearch =
       c.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.businessNumber.replace(/-/g, "").includes(searchTerm.replace(/-/g, ""));
@@ -69,24 +92,59 @@ export default function DatabasePage() {
   return (
     <div suppressHydrationWarning={true} className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
       {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-gbsa-primary)]">기업 DB 관리</h1>
-          <p className="text-gray-500 mt-2">내부에 등록된 모든 기업 데이터베이스를 조회하고 관리합니다.</p>
-        </div>
-        <div className="flex items-center space-x-3">
+      <div className="flex justify-between items-center">
+        {/* Recycle Bin / Archive tabs for superusers */}
+        {isSuperUser ? (
+          <div className="bg-white/80 p-1 rounded-xl shadow-sm border border-gray-200/50 flex gap-1 backdrop-blur-sm">
+            <button
+              onClick={() => {
+                setActiveTab("active");
+                setSearchTerm("");
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                activeTab === "active"
+                  ? "bg-[var(--color-gbsa-primary)] text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+              }`}
+            >
+              활성 기업 목록
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("deleted");
+                setSearchTerm("");
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-1.5 ${
+                activeTab === "deleted"
+                  ? "bg-red-600 text-white shadow-sm"
+                  : "text-gray-500 hover:text-red-600 hover:bg-red-50/50"
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              휴지통 (삭제된 기업)
+            </button>
+          </div>
+        ) : (
+          <div />
+        )}
+
+        <div className="flex gap-3">
           <button onClick={handleExportAll} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg shadow-sm hover:bg-gray-50 font-medium transition-colors">
             데이터 내보내기
           </button>
-          <button 
-            onClick={() => setIsNewCompanyModalOpen(true)}
-            className="px-4 py-2 bg-[var(--color-gbsa-primary)] text-white rounded-lg shadow-sm hover:bg-[var(--color-gbsa-secondary)] font-medium flex items-center transition-colors"
-          >
-            <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            신규 기업 등록
-          </button>
+          {activeTab === "active" && (
+            <button 
+              onClick={() => setIsNewCompanyModalOpen(true)}
+              className="px-4 py-2 bg-[var(--color-gbsa-primary)] text-white rounded-lg shadow-sm hover:bg-[var(--color-gbsa-secondary)] font-medium flex items-center transition-colors"
+            >
+              <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              신규 기업 등록
+            </button>
+          )}
         </div>
       </div>
 
@@ -121,7 +179,10 @@ export default function DatabasePage() {
       {/* Data Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <h3 className="text-lg font-semibold text-gray-800">등록된 기업 목록 <span className="text-sm font-normal text-gray-500 ml-2">총 {filteredCompanies.length}건</span></h3>
+          <h3 className="text-lg font-semibold text-gray-800">
+            {activeTab === "active" ? "등록된 기업 목록" : "휴지통에 보관된 기업 목록"}
+            <span className="text-sm font-normal text-gray-500 ml-2">총 {filteredCompanies.length}건</span>
+          </h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -131,8 +192,11 @@ export default function DatabasePage() {
                 <th className="py-4 px-6 font-medium">사업자등록번호</th>
                 <th className="py-4 px-6 font-medium">소재지</th>
                 <th className="py-4 px-6 font-medium">주요 사업(지원분야)</th>
-                <th className="py-4 px-6 font-medium text-right">총 지원금액</th>
-                <th className="py-4 px-6 font-medium text-center">관리</th>
+                {activeTab === "active" ? (
+                  <th className="py-4 px-6 font-medium text-right">총 지원금액</th>
+                ) : (
+                  <th className="py-4 px-6 font-medium text-right">삭제 일시</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -142,34 +206,49 @@ export default function DatabasePage() {
                     .filter((h) => h.status !== "포기" && h.status !== "제외")
                     .reduce((sum, h) => sum + h.supportAmount, 0);
 
+                  const formatDate = (isoString?: string) => {
+                    if (!isoString) return "-";
+                    try {
+                      const d = new Date(isoString);
+                      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+                    } catch (e) {
+                      return isoString;
+                    }
+                  };
+
                   return (
                     <tr 
                       key={company.id} 
-                      className="hover:bg-gray-50 transition-colors group"
+                      onClick={() => {
+                        if (activeTab === "active") {
+                          setSelectedCompany(company);
+                        } else {
+                          setSelectedDeletedCompany(company);
+                        }
+                      }}
+                      className="hover:bg-[#EBF8FF] cursor-pointer transition-colors group"
                     >
                       <td className="py-4 px-6 font-medium text-gray-900">{company.companyName}</td>
                       <td className="py-4 px-6 font-mono text-gray-600">
                         <BusinessNumber value={company.businessNumber} />
                       </td>
-                      <td className="py-4 px-6 text-gray-500">{company.location}</td>
+                      <td className="py-4 px-6 text-gray-500">{extractSiGun(company.location)}</td>
                       <td className="py-4 px-6 text-gray-500">{company.supportField}</td>
-                      <td className="py-4 px-6 text-right font-bold text-[var(--color-gbsa-primary)]">
-                        {totalSupport > 0 ? `${totalSupport.toLocaleString()}원` : "-"}
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <button 
-                          onClick={() => setSelectedCompany(company)}
-                          className="px-3 py-1.5 text-sm font-medium text-[var(--color-gbsa-primary)] bg-blue-50 hover:bg-[var(--color-gbsa-primary)] hover:text-white rounded-lg transition-colors"
-                        >
-                          관리
-                        </button>
-                      </td>
+                      {activeTab === "active" ? (
+                        <td className="py-4 px-6 text-right font-bold text-[var(--color-gbsa-primary)]">
+                          {totalSupport > 0 ? `${totalSupport.toLocaleString()}원` : "-"}
+                        </td>
+                      ) : (
+                        <td className="py-4 px-6 text-right font-medium text-red-500">
+                          {formatDate((company as any).deletedAt)}
+                        </td>
+                      )}
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-500">
+                  <td colSpan={5} className="py-12 text-center text-gray-500">
                     검색 결과가 없습니다.
                   </td>
                 </tr>
@@ -186,6 +265,17 @@ export default function DatabasePage() {
           onClose={() => {
             setSelectedCompany(null);
             handleRefresh();
+          }}
+        />
+      )}
+
+      {/* Deleted Manage Modal */}
+      {selectedDeletedCompany && (
+        <DeletedDBManageModal
+          company={selectedDeletedCompany}
+          onRefresh={handleRefresh}
+          onClose={() => {
+            setSelectedDeletedCompany(null);
           }}
         />
       )}

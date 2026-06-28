@@ -3,6 +3,7 @@
 
 import { Company, SupportHistory, mockCompanies } from "@/data/mockData";
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
+import { matchingService } from "./matchingService";
 
 export type SearchLog = {
   id: string;
@@ -16,6 +17,7 @@ export type SearchLog = {
   totalCount?: number;
   duplicateCount?: number;
   brn?: string;
+  additionalData?: any;
 };
 
 const STORAGE_KEYS = {
@@ -71,6 +73,8 @@ const initialSearchLogs: SearchLog[] = [
 const isClient = typeof window !== "undefined";
 
 // Mappers for Supabase to map snake_case database schema to camelCase front-end types
+// NOTE: "location" fields in DB and types represent the FULL detailed address (e.g. 경기도 수원시 ...). 
+// The city/county (소재지) is derived dynamically on the frontend via extractSiGun(address).
 function mapDbCompany(dbCo: any): Company {
   return {
     id: dbCo.id,
@@ -83,14 +87,23 @@ function mapDbCompany(dbCo: any): Company {
     matchScore: 0,
     histories: (dbCo.histories || []).map((h: any) => ({
       id: h.id,
+      brn: h.business_number || h.brn || undefined,
       year: h.year,
       programName: h.program_name,
+      projectName: h.project_name || undefined,
       status: h.status,
       selectedAmount: Number(h.selected_amount) || 0,
       supportAmount: Number(h.support_amount) || 0,
       notes: h.notes || undefined,
     })).sort((a: any, b: any) => b.year.localeCompare(a.year)),
     ...(dbCo.additional_data || {}),
+  };
+}
+
+function mapDbDeletedCompany(dbCo: any): Company & { deletedAt?: string } {
+  return {
+    ...mapDbCompany(dbCo),
+    deletedAt: dbCo.deleted_at || undefined,
   };
 }
 
@@ -121,6 +134,7 @@ function mapToDbHistory(h: Partial<SupportHistory>) {
   const dbH: any = {};
   if (h.year !== undefined) dbH.year = h.year;
   if (h.programName !== undefined) dbH.program_name = h.programName;
+  if (h.projectName !== undefined) dbH.project_name = h.projectName;
   if (h.status !== undefined) dbH.status = h.status;
   if (h.selectedAmount !== undefined) dbH.selected_amount = h.selectedAmount;
   if (h.supportAmount !== undefined) dbH.support_amount = h.supportAmount;
@@ -140,7 +154,8 @@ function mapDbSearchLog(l: any): SearchLog {
     description: l.description || undefined,
     totalCount: l.total_count !== null && l.total_count !== undefined ? Number(l.total_count) : undefined,
     duplicateCount: l.duplicate_count !== null && l.duplicate_count !== undefined ? Number(l.duplicate_count) : undefined,
-    brn: l.brn || undefined,
+    brn: l.business_number || undefined,
+    additionalData: l.additional_data || undefined,
   };
 }
 
@@ -154,7 +169,8 @@ function mapToDbSearchLog(l: Partial<SearchLog>) {
   if (l.description !== undefined) dbL.description = l.description;
   if (l.totalCount !== undefined) dbL.total_count = l.totalCount;
   if (l.duplicateCount !== undefined) dbL.duplicate_count = l.duplicateCount;
-  if (l.brn !== undefined) dbL.brn = l.brn;
+  if (l.brn !== undefined) dbL.business_number = l.brn;
+  if (l.additionalData !== undefined) dbL.additional_data = l.additionalData;
   return dbL;
 }
 
@@ -325,8 +341,76 @@ export const companyService = {
     }
 
     const companies = await this.getCompanies();
+    const target = companies.find((c) => c.id === id);
     const filtered = companies.filter((c) => c.id !== id);
     this.saveCompanies(filtered);
+
+    if (target) {
+      const deleted = await this.getDeletedCompanies();
+      deleted.push({
+        ...target,
+        deletedAt: new Date().toISOString()
+      });
+      localStorage.setItem("gbsa_deleted_companies", JSON.stringify(deleted));
+    }
+  },
+
+  // Get all deleted companies
+  async getDeletedCompanies(): Promise<(Company & { deletedAt?: string })[]> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("deleted_companies")
+        .select("*, histories:deleted_support_histories(*)");
+      if (error) {
+        console.error("Error fetching deleted companies from Supabase:", error);
+        return [];
+      }
+      return (data || []).map(mapDbDeletedCompany);
+    }
+
+    if (!isClient) return [];
+    const localData = localStorage.getItem("gbsa_deleted_companies");
+    return localData ? JSON.parse(localData) : [];
+  },
+
+  // Restore deleted company
+  async restoreCompany(id: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.rpc("restore_company_data", {
+        target_company_id: id
+      });
+      if (error) console.error("Error restoring company in Supabase:", error);
+      return;
+    }
+
+    const deleted = await this.getDeletedCompanies();
+    const target = deleted.find((c) => c.id === id);
+    if (!target) return;
+
+    // Remove from deleted and add back to main
+    const nextDeleted = deleted.filter((c) => c.id !== id);
+    localStorage.setItem("gbsa_deleted_companies", JSON.stringify(nextDeleted));
+
+    const companies = await this.getCompanies();
+    const { deletedAt, ...rest } = target;
+    companies.push(rest);
+    this.saveCompanies(companies);
+  },
+
+  // Permanently delete company from archive
+  async permanentDeleteCompany(id: string): Promise<void> {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase
+        .from("deleted_companies")
+        .delete()
+        .eq("id", id);
+      if (error) console.error("Error permanently deleting company in Supabase:", error);
+      return;
+    }
+
+    const deleted = await this.getDeletedCompanies();
+    const nextDeleted = deleted.filter((c) => c.id !== id);
+    localStorage.setItem("gbsa_deleted_companies", JSON.stringify(nextDeleted));
   },
 
   // Update a specific support history row
@@ -514,5 +598,68 @@ export const companyService = {
     logs.unshift(newLog);
     localStorage.setItem(STORAGE_KEYS.SEARCH_LOGS, JSON.stringify(logs));
     return newLog;
+  },
+
+  // Get matched companies for a BATCH log
+  async getBatchResults(logId: string): Promise<Company[]> {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("search_logs")
+        .select("additional_data, description")
+        .eq("id", logId)
+        .single();
+        
+      if (!error && data) {
+        if (data.additional_data && data.additional_data.results) {
+          return data.additional_data.results;
+        }
+        if (data.description) {
+          try {
+            const parsed = JSON.parse(data.description);
+            if (parsed.results) {
+              return parsed.results;
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
+    if (isClient) {
+      const stored = localStorage.getItem(`gbsa_batch_results_${logId}`);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    
+    // Fallback/Mock generator for initial logs
+    if (logId === "log-1") {
+      const db = await this.getCompanies();
+      const candidates: Partial<Company>[] = [
+        { id: "c-b1", companyName: "삼성전자", businessNumber: "124-81-00988", location: "경기도 수원시 영통구 삼성로 129", supportField: "반도체/IT", requestedAmount: 50000000 },
+        { id: "c-b2", companyName: "(주)아펙스디자인", businessNumber: "120-88-12345", location: "경기도 성남시 분당구 판교로 20", supportField: "디자인/마케팅", requestedAmount: 15000000 },
+        { id: "c-b3", companyName: "테스트솔루션", businessNumber: "320-11-99887", location: "경기도 안양시 동안구 시민대로 100", supportField: "소프트웨어/IT", requestedAmount: 20000000 },
+        { id: "c-b4", companyName: "동일정밀", businessNumber: "135-24-99811", location: "경기도 시흥시 공단1대로 50", supportField: "기계/제조", requestedAmount: 30000000 },
+        { id: "c-b5", companyName: "그린바이오텍", businessNumber: "220-45-77611", location: "경기도 수원시 권선구 수인로 10", supportField: "바이오/의료", requestedAmount: 40000000 },
+      ];
+      return matchingService.matchCompanies(candidates, db);
+    }
+    
+    if (logId === "log-3") {
+      const db = await this.getCompanies();
+      const candidates: Partial<Company>[] = [
+        { id: "c-b6", companyName: "네이버", businessNumber: "220-81-62517", location: "경기도 성남시 분당구 불정로 6", supportField: "IT/소프트웨어", requestedAmount: 100000000 },
+        { id: "c-b7", companyName: "카카오", businessNumber: "120-81-47521", location: "경기도 성남시 분당구 판교역로 166", supportField: "IT/플랫폼", requestedAmount: 80000000 },
+        { id: "c-b8", companyName: "라인플러스", businessNumber: "220-88-11223", location: "경기도 성남시 분당구 황새울로 360", supportField: "IT/메신저", requestedAmount: 60000000 },
+      ];
+      return matchingService.matchCompanies(candidates, db);
+    }
+
+    return [];
   }
 };

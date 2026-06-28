@@ -75,7 +75,7 @@ export default function EditCompanyModal({ company, onClose, onUpdate }: EditCom
             )}
           </label>
           <label className="block">
-            <span className="text-gray-700">소재지</span>
+            <span className="text-gray-700">주소</span>
             <input
               type="text"
               className="mt-1 block w-full rounded-md border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100"
