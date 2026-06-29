@@ -415,7 +415,17 @@ export const excelService = {
       return { headers: [], data: [], sheetName };
     }
 
-    // Extract title and description from rows before the header row
+    // Extract title and description from rows before the header row.
+    // Some files have column A empty with merged cells starting from column B.
+    const firstNonEmpty = (row: any[]): string | undefined => {
+      for (const cell of row) {
+        if (cell !== undefined && cell !== null && String(cell).trim() !== '') {
+          return String(cell).trim();
+        }
+      }
+      return undefined;
+    };
+
     const beforeHeaderRows = rows.slice(0, headerRowIdx).filter(
       (row) =>
         row &&
@@ -424,16 +434,12 @@ export const excelService = {
     let title: string | undefined;
     let description: string | undefined;
     if (beforeHeaderRows.length > 0) {
-      const val = beforeHeaderRows[0][0];
-      title = val !== undefined && val !== null ? String(val).trim() : undefined;
+      title = firstNonEmpty(beforeHeaderRows[0]);
     }
     if (beforeHeaderRows.length > 1) {
       description = beforeHeaderRows
         .slice(1)
-        .map((row) => {
-          const v = row[0];
-          return v !== undefined && v !== null ? String(v).trim() : '';
-        })
+        .map((row) => firstNonEmpty(row) || '')
         .filter((s) => s)
         .join('\n');
     }
