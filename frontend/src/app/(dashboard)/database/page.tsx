@@ -271,20 +271,16 @@ export default function DatabasePage() {
                       <td className="py-4 px-6 text-center text-gray-500">{extractSiGun(company.location)}</td>
                       <td className="py-4 px-6 text-left text-gray-500">{company.supportField}</td>
                       <td className="py-4 px-6 text-left text-gray-500">
-                        {company.histories && company.histories.length > 0 ? (
-                          <div className="space-y-1">
-                            {company.histories.slice(0, 3).map((h) => (
-                              <div key={h.id}>
-                                <span className="font-semibold text-gray-800">{h.programName}</span>
-                                {h.projectName && <span className="text-gray-500"> ({h.projectName})</span>}
-                                {h.notes && <div className="text-[11px] text-orange-500">비고: {h.notes}</div>}
-                              </div>
-                            ))}
-                            {company.histories.length > 3 && (
-                              <div className="text-[11px] text-gray-400">...외 {company.histories.length - 3}건</div>
-                            )}
-                          </div>
-                        ) : "-"}
+                        {company.histories && company.histories.length > 0 ? (() => {
+                          const h = company.histories[company.histories.length - 1];
+                          return (
+                            <div>
+                              <span className="font-semibold text-gray-800">{h.year} {h.programName}</span>
+                              {h.projectName && <span className="text-gray-500"> ({h.projectName})</span>}
+                              {h.notes && <div className="text-[11px] text-orange-500">비고: {h.notes}</div>}
+                            </div>
+                          );
+                        })() : "-"}
                       </td>
                       {activeTab === "active" ? (
                         <td className="py-4 px-6 text-right font-bold font-mono text-[var(--color-gbsa-primary)]">
