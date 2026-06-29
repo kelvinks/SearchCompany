@@ -74,28 +74,49 @@ export default function DashboardPage() {
     if (!files || files.length === 0) return;
     const file = files[0];
 
+    console.log(`[Upload] Start: ${file.name} (${file.size} bytes, type: ${file.type})`);
     setIsUploading(true);
     try {
-      // 1. Extract password from filename if _PWXXXX pattern exists
+      // 1. Extract password from filename
       const filePassword = excelService.extractPasswordFromFileName(file.name);
       const effectivePassword = filePassword || excelPassword || undefined;
+      console.log(`[Upload] Step 1 - Password: ${effectivePassword ? "****" : "none"}, filePattern: ${!!filePassword}, manual: ${!!excelPassword}`);
       
       // 2. Parse Excel data for matching
-      const parsedCandidates = await excelService.parseUploadFile(file, effectivePassword);
+      console.log(`[Upload] Step 2 - Parsing Excel for matching...`);
+      let parsedCandidates;
+      try {
+        parsedCandidates = await excelService.parseUploadFile(file, effectivePassword);
+        console.log(`[Upload] Step 2 OK - ${parsedCandidates.length} candidates parsed`);
+      } catch (err: any) {
+        console.error(`[Upload] Step 2 FAILED:`, err);
+        throw new Error(`[파일 읽기 실패] ${err.message}`);
+      }
       
       // 3. Parse raw data for storage
-      const rawData = await excelService.parseRawData(file, effectivePassword);
-      
-      // 4. Upload file to Supabase Storage (non-critical, continue even if fails)
+      console.log(`[Upload] Step 3 - Parsing raw data...`);
+      let rawData;
+      try {
+        rawData = await excelService.parseRawData(file, effectivePassword);
+        console.log(`[Upload] Step 3 OK - headers: ${rawData.headers.length}, rows: ${rawData.data.length}`);
+      } catch (err: any) {
+        console.error(`[Upload] Step 3 FAILED:`, err);
+        throw new Error(`[원본 데이터 파싱 실패] ${err.message}`);
+      }
+
+      // 4. Upload file to Supabase Storage (non-critical)
       let fileUrl: string | null = null;
       try {
+        console.log(`[Upload] Step 4 - Uploading to Supabase Storage...`);
         fileUrl = await excelService.uploadFileToStorage(file);
-      } catch (storageErr) {
-        console.warn("Storage upload failed (continuing without file URL):", storageErr);
+        console.log(`[Upload] Step 4 OK - URL: ${fileUrl || "null"}`);
+      } catch (storageErr: any) {
+        console.warn(`[Upload] Step 4 FAILED (non-critical):`, storageErr);
       }
 
       // 5. Save to excel_uploads table (non-critical)
       try {
+        console.log(`[Upload] Step 5 - Saving to excel_uploads...`);
         await companyService.addExcelUpload({
           fileName: file.name,
           fileSize: file.size,
@@ -106,21 +127,27 @@ export default function DashboardPage() {
           columnHeaders: rawData.headers,
           uploadNote: reqDesc || undefined,
         });
-      } catch (dbErr) {
-        console.warn("excel_uploads save failed (continuing with matching):", dbErr);
+        console.log(`[Upload] Step 5 OK`);
+      } catch (dbErr: any) {
+        console.warn(`[Upload] Step 5 FAILED (non-critical):`, dbErr);
       }
 
       // 6. Fetch current DB
+      console.log(`[Upload] Step 6 - Fetching DB companies...`);
       const db = await companyService.getCompanies();
+      console.log(`[Upload] Step 6 OK - ${db.length} companies in DB`);
 
       // 7. Run Matching logic
+      console.log(`[Upload] Step 7 - Running matching...`);
       const matchedResults = matchingService.matchCompanies(parsedCandidates, db);
+      console.log(`[Upload] Step 7 OK - ${matchedResults.length} results`);
 
-      // 8. Update state to show results in verification table
+      // 8. Update state
       setCompanies(matchedResults);
-      setActiveBatchInfo(null); // Clear past batch info on new file upload
+      setActiveBatchInfo(null);
 
-      // 9. Add a single BATCH log representing the entire Excel validation run
+      // 9. Add BATCH log
+      console.log(`[Upload] Step 9 - Saving search log...`);
       const batchDesc = reqDesc || `${parsedCandidates.length}개사 중복 검증 요청`;
       const batchMeta = {
         orgName: reqOrg || "외부요청",
@@ -153,21 +180,16 @@ export default function DashboardPage() {
       });
 
       await updateTotalHistoriesCount();
+      console.log(`[Upload] All steps completed successfully`);
 
     } catch (error: any) {
-      console.error("Error parsing or matching file:", error);
+      console.error("[Upload] Fatal error:", error);
       const msg = error?.message || String(error);
-      let userMsg = "엑셀 파일 처리 중 오류가 발생했습니다.";
-      if (msg.includes("비밀번호") || msg.includes("password") || msg.includes("decrypt") || msg.includes("암호화")) {
-        userMsg = "암호화된 파일 처리 중 오류가 발생했습니다.\n\n• 파일명에 _PW1234 패턴이 있는지 확인하세요.\n• 수동으로 비밀번호를 입력해 보세요.";
-      } else if (msg.includes("fetch") || msg.includes("Failed to fetch") || msg.includes("network")) {
+      let userMsg = `엑셀 파일 처리 중 오류가 발생했습니다.\n\n${msg}`;
+      if (msg.includes("파일 읽기 실패") || msg.includes("암호화")) {
+        userMsg = `파일 처리 오류\n\n${msg}\n\n• 파일이 암호화된 경우 _PW1234 패턴 확인 또는 비밀번호 수동 입력`;
+      } else if (msg.includes("fetch") || msg.includes("Failed to fetch")) {
         userMsg = "서버 연결에 실패했습니다. 네트워크 연결을 확인하세요.";
-      } else if (msg.includes("서버 오류") || msg.includes("500") || msg.includes("502") || msg.includes("504")) {
-        userMsg = "서버 처리 중 오류가 발생했습니다.\n파일이 너무 크거나 형식이 지원되지 않을 수 있습니다.";
-      } else if (msg.includes("Not Found") || msg.includes("404")) {
-        userMsg = "API 엔드포인트를 찾을 수 없습니다. 관리자에게 문의하세요.";
-      } else if (msg.includes("413") || msg.includes("too large") || msg.includes("size")) {
-        userMsg = "파일이 너무 큽니다. 더 작은 파일로 시도해 보세요.";
       }
       alert(userMsg);
     } finally {
