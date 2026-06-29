@@ -77,6 +77,22 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
   const handleBulkUpload = async (file: File) => {
     setIsUploading(true);
     try {
+      // Upload file to Vercel Blob under company/ folder
+      let fileUrl: string | null = null;
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "company");
+        const uploadRes = await fetch("/api/blob-upload", { method: "POST", body: formData });
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json();
+          fileUrl = uploadData.url;
+          console.log(`[CompanyUpload] File uploaded to Blob: ${fileUrl}`);
+        }
+      } catch (blobErr) {
+        console.warn("[CompanyUpload] Blob upload failed (continuing):", blobErr);
+      }
+
       const parsedCandidates = await excelService.parseUploadFile(file);
       // Map to full Company array (fill histories as empty initially)
       const companiesToAdd = parsedCandidates.map((c) => ({

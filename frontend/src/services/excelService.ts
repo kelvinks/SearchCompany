@@ -329,12 +329,13 @@ export const excelService = {
   /**
    * Uploads file to Vercel Blob Storage and returns public URL.
    */
-  async uploadFileToStorage(file: File): Promise<string | null> {
-    console.log(`[Storage] Uploading to Vercel Blob: ${file.name} (${file.size} bytes)`);
+  async uploadFileToStorage(file: File, folder: string = "request"): Promise<string | null> {
+    console.log(`[Storage] Uploading to Vercel Blob: ${file.name} (${file.size} bytes) → ${folder}/`);
     
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("folder", folder);
 
       const response = await fetch("/api/blob-upload", {
         method: "POST",

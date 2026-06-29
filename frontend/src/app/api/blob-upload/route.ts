@@ -5,6 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const folder = (formData.get("folder") as string) || "request";
 
     if (!file) {
       return NextResponse.json({ error: "파일이 제공되지 않았습니다." }, { status: 400 });
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const rawExt = file.name.split(".").pop() || "xlsx";
     const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "xlsx";
-    const fileName = `request/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
     const blob = await put(fileName, file, {
       access: "public",
