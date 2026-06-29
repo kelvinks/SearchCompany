@@ -22,15 +22,8 @@ export default function DashboardPage() {
   const [reqDesc, setReqDesc] = useState("");
   const [excelPassword, setExcelPassword] = useState("");
   
-  const [totalHistoriesCount, setTotalHistoriesCount] = useState(0);
   const [activeBatchInfo, setActiveBatchInfo] = useState<{ id: string; title: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const updateTotalHistoriesCount = async () => {
-    const db = await companyService.getCompanies();
-    const total = db.reduce((acc, c) => acc + c.histories.length, 0);
-    setTotalHistoriesCount(total);
-  };
 
   // Initialize and load companies on mount to avoid hydration mismatch
   useEffect(() => {
@@ -46,16 +39,11 @@ export default function DashboardPage() {
           setCompanies(activeBatch.companies);
           setActiveBatchInfo({ id: activeBatch.id, title: activeBatch.title });
           sessionStorage.removeItem("gbsa_active_batch");
-          
-          const total = loaded.reduce((acc, c) => acc + c.histories.length, 0);
-          setTotalHistoriesCount(total);
           return;
         }
       }
 
       setCompanies(loaded);
-      const total = loaded.reduce((acc, c) => acc + c.histories.length, 0);
-      setTotalHistoriesCount(total);
     };
     loadData();
   }, []);
@@ -175,7 +163,6 @@ export default function DashboardPage() {
         },
       });
 
-      await updateTotalHistoriesCount();
       console.log(`[Upload] All steps completed successfully`);
 
     } catch (error: any) {
@@ -247,10 +234,6 @@ export default function DashboardPage() {
       alert("검색 중 오류가 발생했습니다.");
     }
   };
-
-  // Dynamic counts for stats cards
-  const duplicateCount = companies.filter((c) => c.isDuplicateSuspect).length;
-  const newCount = companies.filter((c) => c.matchStatus === "NEW").length;
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
@@ -430,39 +413,6 @@ export default function DashboardPage() {
                 검색 실행
               </button>
             </form>
-          </div>
-
-          {/* Stats Cards (Horizontal Row) */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
-              <div className="w-10 h-10 shrink-0 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-red-600 truncate">중복 의심</p>
-                <p className="text-lg font-bold text-red-700 mt-0.5">{duplicateCount}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></p>
-              </div>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
-              <div className="w-10 h-10 shrink-0 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-gray-500 font-medium truncate">신규 요청</p>
-                <p className="text-lg font-bold text-gray-900 mt-0.5">{newCount}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></p>
-              </div>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
-              <div className="w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-[var(--color-gbsa-primary)]">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-gray-500 font-medium truncate">총 누적 지원</p>
-                <p className="text-lg font-bold text-gray-900 mt-0.5">{totalHistoriesCount.toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></p>
-              </div>
-            </div>
           </div>
 
         </div>
