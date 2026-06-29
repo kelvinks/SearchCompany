@@ -188,6 +188,12 @@ export default function VerificationResultsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F1F5F9] text-gray-600">
               <tr>
+                <th className="py-4 px-6 font-medium text-center w-14">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    번호
+                  </div>
+                </th>
                 <th className="py-4 px-6 font-medium text-center">
                   <div className="flex items-center justify-center gap-1.5">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -200,34 +206,28 @@ export default function VerificationResultsPage() {
                     기업명
                   </div>
                 </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
+                <th className="py-4 px-6 font-medium text-center">
+                  <div className="flex items-center justify-center gap-1.5">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     사업자등록번호
                   </div>
                 </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    지원사업명
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                    지원과제명
+                <th className="py-4 px-6 font-medium text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0zM15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    소재지
                   </div>
                 </th>
                 <th className="py-4 px-6 font-medium text-center">
                   <div className="flex items-center justify-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    소재지
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    지원분야
                   </div>
                 </th>
                 <th className="py-4 px-6 font-medium text-left">
                   <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                    지원분야
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    지원과제명
                   </div>
                 </th>
                 <th className="py-4 px-6 font-medium text-right">
@@ -239,23 +239,34 @@ export default function VerificationResultsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {companies.map((company) => {
+              {companies.map((company, index) => {
                 const validTotal = getValidTotal(company);
+                const lastHist = company.histories && company.histories.length > 0
+                  ? company.histories[company.histories.length - 1]
+                  : null;
                 return (
                   <tr 
                     key={company.id} 
                     className="hover:bg-gray-50 transition-colors group cursor-pointer"
                     onClick={() => setSelectedCompany(company)}
                   >
+                    <td className="py-4 px-6 text-center font-mono text-gray-400 text-xs">{companies.length - index}</td>
                     <td className="py-4 px-6 text-center">{getMatchStatusBadge(company)}</td>
                     <td className="py-4 px-6 text-left font-medium text-gray-800">{company.companyName}</td>
-                    <td className="py-4 px-6 text-left font-mono text-gray-600">
+                    <td className="py-4 px-6 text-center font-mono text-gray-600">
                       <BusinessNumber value={company.businessNumber} />
                     </td>
-                    <td className="py-4 px-6 text-left text-gray-500">{company.appliedProgramName || "-"}</td>
-                    <td className="py-4 px-6 text-left text-gray-500 max-w-[180px] truncate">{company.appliedProjectName || "-"}</td>
                     <td className="py-4 px-6 text-center text-gray-500">{extractSiGun(company.location)}</td>
-                    <td className="py-4 px-6 text-left text-gray-500">{company.supportField}</td>
+                    <td className="py-4 px-6 text-center text-gray-500">{company.supportField}</td>
+                    <td className="py-4 px-6 text-left text-gray-500">
+                      {lastHist ? (
+                        <div>
+                          <span className="font-semibold text-gray-800">{lastHist.year} {lastHist.programName}</span>
+                          {lastHist.projectName && <span className="text-gray-500"> ({lastHist.projectName})</span>}
+                          {lastHist.notes && <div className="text-[11px] text-orange-500">비고: {lastHist.notes}</div>}
+                        </div>
+                      ) : "-"}
+                    </td>
                     <td className="py-4 px-6 text-right">
                       {validTotal > 0 ? (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[var(--color-gbsa-primary)] text-white text-xs font-bold">
