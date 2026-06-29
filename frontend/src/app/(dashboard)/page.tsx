@@ -1,18 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Company, SupportHistory } from "@/data/mockData";
-import HistoryModal from "@/components/modal/HistoryModal";
+import { Company } from "@/data/mockData";
 import { companyService } from "@/services/companyService";
-import BusinessNumber from "@/components/BusinessNumber";
-import { extractSiGun } from "@/utils/format";
 import { matchingService } from "@/services/matchingService";
 import { excelService } from "@/services/excelService";
 
 
 export default function DashboardPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   
   // Single Search State
@@ -203,100 +199,52 @@ export default function DashboardPage() {
     if (e) e.preventDefault();
     if (!singleSearchQuery.trim()) return;
 
-    const db = await companyService.getCompanies();
-    const isBrn = /^[0-9-]*$/.test(singleSearchQuery.replace(/\s/g, ""));
-    const candidate: Partial<Company> = isBrn
-      ? {
-          businessNumber: singleSearchQuery.trim(),
-          appliedProgramName: singleSearchProgram.trim(),
-          appliedProjectName: singleSearchProject.trim(),
-        }
-      : {
-          companyName: singleSearchQuery.trim(),
-          appliedProgramName: singleSearchProgram.trim(),
-          appliedProjectName: singleSearchProject.trim(),
-        };
-
-    // Run matching on single candidate
-    const matched = matchingService.matchCompany(candidate, db);
-    const isDuplicate = matched.matchStatus === "EXACT" || matched.matchStatus === "FUZZY";
-    
-    // Add single search history log
-    await companyService.addSearchLog({
-      type: "MANUAL",
-      riskLevel: isDuplicate ? "High Risk" : "Safe",
-      title: matched.companyName || singleSearchQuery.trim(),
-      brn: matched.businessNumber || singleSearchQuery.trim(),
-      description: JSON.stringify({
-        desc: "단일 기업 중복 수혜 검증",
-        appliedProgramName: singleSearchProgram.trim(),
-        appliedProjectName: singleSearchProject.trim(),
-        isBulk: false,
-      }),
-      additionalData: {
-        matchedCompany: matched,
-      },
-    });
-
-    // Reset single search subfields
-    setSingleSearchProgram("");
-    setSingleSearchProject("");
-
-    // Open detail comparative modal
-    setSelectedCompany(matched);
-  };
-
-  // History Update Handler
-  const handleUpdateHistory = async (companyId: string, historyId: string, updates: Partial<SupportHistory>) => {
-    const updatedCo = await companyService.updateSupportHistory(companyId, historyId, updates);
-    
-    // Sync UI state
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
-    if (selectedCompany && selectedCompany.id === companyId) {
-      setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
-    }
-    await updateTotalHistoriesCount();
-  };
-
-  // Confirm Duplicate Handler
-  const handleConfirmDuplicate = async (companyId: string) => {
-    const updatedCo = await companyService.updateCompany(companyId, { matchStatus: "EXACT", matchScore: 100 });
-    
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
-    if (selectedCompany && selectedCompany.id === companyId) {
-      setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
-    }
-  };
-
-  // False Alarm / Approve Handler
-  const handleFalseAlarm = async (companyId: string) => {
-    const updatedCo = await companyService.updateCompany(companyId, { matchStatus: "NEW", matchScore: 0 });
-    
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
-    if (selectedCompany && selectedCompany.id === companyId) {
-      setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
-    }
-  };
-
-  // Export validation report
-  const handleExportReport = async () => {
-    if (companies.length === 0) {
-      alert("다운로드할 검증 결과 데이터가 없습니다.");
-      return;
-    }
     try {
-      const blob = await excelService.exportReport(companies);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `중복검증결과_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error("Export report error:", error);
-      alert("엑셀 리포트 다운로드 중 오류가 발생했습니다.");
+      const db = await companyService.getCompanies();
+      const isBrn = /^[0-9-]*$/.test(singleSearchQuery.replace(/\s/g, ""));
+      const candidate: Partial<Company> = isBrn
+        ? {
+            businessNumber: singleSearchQuery.trim(),
+            appliedProgramName: singleSearchProgram.trim(),
+            appliedProjectName: singleSearchProject.trim(),
+          }
+        : {
+            companyName: singleSearchQuery.trim(),
+            appliedProgramName: singleSearchProgram.trim(),
+            appliedProjectName: singleSearchProject.trim(),
+          };
+
+      // Run matching on single candidate
+      const matched = matchingService.matchCompany(candidate, db);
+      const isDuplicate = matched.matchStatus === "EXACT" || matched.matchStatus === "FUZZY";
+      
+      // Add single search history log (non-critical)
+      try {
+        await companyService.addSearchLog({
+          type: "MANUAL",
+          riskLevel: isDuplicate ? "High Risk" : "Safe",
+          title: matched.companyName || singleSearchQuery.trim(),
+          brn: matched.businessNumber || singleSearchQuery.trim(),
+          description: JSON.stringify({
+            desc: "단일 기업 중복 수혜 검증",
+            appliedProgramName: singleSearchProgram.trim(),
+            appliedProjectName: singleSearchProject.trim(),
+            isBulk: false,
+          }),
+          additionalData: {
+            matchedCompany: matched,
+          },
+        });
+      } catch (logErr) {
+        console.warn("Search log save failed (non-critical):", logErr);
+      }
+
+      // Reset single search subfields
+      setSingleSearchProgram("");
+      setSingleSearchProject("");
+    } catch (err: any) {
+      console.error("Single search error:", err);
+      alert("검색 중 오류가 발생했습니다.");
     }
   };
 
@@ -520,172 +468,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Results Table */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-semibold text-gray-800">
-              {activeBatchInfo ? `최근 검증 결과 (${activeBatchInfo.title})` : "최근 검증 결과"}
-            </h3>
-            {activeBatchInfo && (
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-md border border-blue-200">
-                과거 검색 기록 로드됨
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {activeBatchInfo && (
-              <button 
-                onClick={async () => {
-                  setActiveBatchInfo(null);
-                  const loaded = await companyService.getCompanies();
-                  setCompanies(loaded);
-                }}
-                className="text-xs text-red-500 hover:underline font-semibold"
-              >
-                결과 초기화
-              </button>
-            )}
-            <button onClick={handleExportReport} className="text-sm text-[var(--color-gbsa-primary)] font-medium hover:underline">엑셀 다운로드</button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-[#F1F5F9] text-gray-600">
-              <tr>
-                <th className="py-4 px-6 font-medium text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    상태 (매칭도)
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                    기업명
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    사업자등록번호
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    지원사업명
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                    지원과제명
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    소재지
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                    지원분야
-                  </div>
-                </th>
-                <th className="py-4 px-6 font-medium text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    과거 누적 지원금액
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {companies.map((company) => {
-                const validTotal = company.histories
-                  .filter((h) => h.status !== "포기" && h.status !== "제외")
-                  .reduce((sum, h) => sum + h.supportAmount, 0);
-
-                let badgeClass = "";
-                let badgeText = "";
-                
-                if (company.matchStatus === "EXACT") {
-                  if (company.isDuplicateSuspect) {
-                    badgeClass = "bg-[var(--color-status-red)] text-white";
-                    badgeText = "중복의심 (일치)";
-                  } else {
-                    badgeClass = "bg-blue-600 text-white";
-                    badgeText = "조회 완료 (안전)";
-                  }
-                } else if (company.matchStatus === "FUZZY") {
-                  if (company.isDuplicateSuspect) {
-                    badgeClass = "bg-[var(--color-status-red)] text-white";
-                  } else {
-                    badgeClass = "bg-[var(--color-status-orange)] text-white";
-                  }
-                } else {
-                  badgeClass = "bg-[var(--color-status-green)] text-white";
-                  badgeText = "신규 요청";
-                }
-
-                const hasValidHistory = validTotal > 0;
-
-                return (
-                  <tr 
-                    key={company.id} 
-                    onClick={() => setSelectedCompany(company)}
-                    className="hover:bg-[#EBF8FF] cursor-pointer transition-colors group"
-                  >
-                    <td className="py-4 px-6">
-                      <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>
-                          {company.matchStatus === "FUZZY" ? (
-                            <>{company.isDuplicateSuspect ? "중복의심" : "확인 필요"} (<span className="font-mono">{company.matchScore}%</span>)</>
-                          ) : badgeText}
-                        </span>
-                        {company.isDuplicateSuspect && (
-                          <span className="inline-block px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold border border-red-200 animate-pulse">
-                            ⚠️ 중복 의심
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-left font-medium text-gray-900">{company.companyName}</td>
-                    <td className="py-4 px-6 text-left font-mono text-gray-600">
-                      <BusinessNumber value={company.businessNumber} />
-                    </td>
-                    <td className="py-4 px-6 text-left text-gray-500 max-w-[180px] truncate">{company.appliedProgramName || "-"}</td>
-                    <td className="py-4 px-6 text-left text-gray-500 max-w-[180px] truncate">{company.appliedProjectName || "-"}</td>
-                    <td className="py-4 px-6 text-center text-gray-500">{extractSiGun(company.location)}</td>
-                    <td className="py-4 px-6 text-left text-gray-500">{company.supportField}</td>
-                    <td className="py-4 px-6 text-right">
-                      {hasValidHistory ? (
-                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-sm font-bold">
-                          <span className="font-mono">{validTotal.toLocaleString()}</span><span className="font-sans ml-0.5">원</span>
-                        </span>
-                      ) : "-"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* History Modal */}
-      {selectedCompany && (
-        <HistoryModal 
-          company={selectedCompany} 
-          onClose={() => setSelectedCompany(null)} 
-          onUpdateHistory={handleUpdateHistory}
-          onConfirmDuplicate={handleConfirmDuplicate}
-          onFalseAlarm={handleFalseAlarm}
-        />
-      )}
     </div>
   );
 }
