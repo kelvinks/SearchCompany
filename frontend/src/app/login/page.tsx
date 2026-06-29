@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/services/supabaseClient";
+import { FontProvider } from "@/components/FontProvider";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function LoginPage() {
   };
 
   return (
+    <FontProvider>
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-900">
       {/* Background Video */}
       <video
@@ -140,5 +142,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </FontProvider>
   );
 }

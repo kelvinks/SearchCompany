@@ -194,8 +194,8 @@ export default function DatabasePage() {
                     기업명
                   </div>
                 </th>
-                <th className="py-4 px-6 font-medium text-left">
-                  <div className="flex items-center gap-1.5">
+                <th className="py-4 px-6 font-medium text-center">
+                  <div className="flex items-center justify-center gap-1.5">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     사업자등록번호
                   </div>
@@ -210,6 +210,12 @@ export default function DatabasePage() {
                   <div className="flex items-center gap-1.5">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                     주요 사업(지원분야)
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-left">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    지원사업명
                   </div>
                 </th>
                 {activeTab === "active" ? (
@@ -259,11 +265,16 @@ export default function DatabasePage() {
                       className="hover:bg-[#EBF8FF] cursor-pointer transition-colors group"
                     >
                       <td className="py-4 px-6 text-left font-medium text-gray-900">{company.companyName}</td>
-                      <td className="py-4 px-6 text-left font-mono text-gray-600">
+                      <td className="py-4 px-6 text-center font-mono text-gray-600">
                         <BusinessNumber value={company.businessNumber} />
                       </td>
                       <td className="py-4 px-6 text-center text-gray-500">{extractSiGun(company.location)}</td>
                       <td className="py-4 px-6 text-left text-gray-500">{company.supportField}</td>
+                      <td className="py-4 px-6 text-left text-gray-500">
+                        {company.histories && company.histories.length > 0
+                          ? [...new Set(company.histories.map(h => h.programName))].join(", ")
+                          : "-"}
+                      </td>
                       {activeTab === "active" ? (
                         <td className="py-4 px-6 text-right font-bold font-mono text-[var(--color-gbsa-primary)]">
                           {totalSupport > 0 ? `${totalSupport.toLocaleString()}원` : "-"}
@@ -278,7 +289,7 @@ export default function DatabasePage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-500">
+                  <td colSpan={6} className="py-12 text-center text-gray-500">
                     검색 결과가 없습니다.
                   </td>
                 </tr>
