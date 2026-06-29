@@ -134,6 +134,11 @@ export default function ExcelManagementPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-800 truncate">{upload.file_name}</p>
                       <p className="text-xs text-gray-500 mt-1">{formatDate(upload.created_at)}</p>
+                      {(upload.org_name || upload.doc_num) && (
+                        <p className="text-xs text-gray-400 mt-1 truncate">
+                          {upload.org_name && `요청: ${upload.org_name}`}{upload.org_name && upload.doc_num && " | "}{upload.doc_num && `문서: ${upload.doc_num}`}
+                        </p>
+                      )}
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                           {upload.total_rows || 0}행

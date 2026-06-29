@@ -714,6 +714,8 @@ export const companyService = {
     parsedData: Record<string, any>[];
     columnHeaders: string[];
     uploadNote?: string;
+    orgName?: string;
+    docNum?: string;
   }): Promise<any | null> {
     if (!isSupabaseConfigured || !supabase) {
       const stored = localStorage.getItem("gbsa_excel_uploads");
@@ -739,6 +741,8 @@ export const companyService = {
         parsed_data: upload.parsedData,
         column_headers: upload.columnHeaders,
         upload_note: upload.uploadNote || null,
+        org_name: upload.orgName || null,
+        doc_num: upload.docNum || null,
       })
       .select()
       .single();

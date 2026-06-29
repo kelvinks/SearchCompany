@@ -65,34 +65,26 @@ export default function DashboardPage() {
         throw new Error(`[원본 데이터 파싱 실패] ${err.message}`);
       }
 
-      // 4. Upload file to Supabase Storage (non-critical)
-      let fileUrl: string | null = null;
-      try {
-        console.log(`[Upload] Step 4 - Uploading to Supabase Storage...`);
-        fileUrl = await excelService.uploadFileToStorage(file);
-        console.log(`[Upload] Step 4 OK - URL: ${fileUrl || "null"}`);
-      } catch (storageErr: any) {
-        console.warn(`[Upload] Step 4 FAILED (non-critical):`, storageErr);
-      }
+      // 4. Upload file to Vercel Blob Storage
+      console.log(`[Upload] Step 4 - Uploading to Vercel Blob...`);
+      const fileUrl = await excelService.uploadFileToStorage(file);
+      console.log(`[Upload] Step 4 OK - URL: ${fileUrl || "null"}`);
 
-      // 5. Save to excel_uploads table (non-critical)
-      try {
-        console.log(`[Upload] Step 5 - Saving to excel_uploads...`);
-        await companyService.addExcelUpload({
-          fileName: file.name,
-          fileSize: file.size,
-          fileUrl: fileUrl || undefined,
-          sheetName: rawData.sheetName,
-          totalRows: rawData.data.length,
-          parsedData: rawData.data,
-          columnHeaders: rawData.headers,
-          uploadNote: reqDesc || undefined,
-        });
-        console.log(`[Upload] Step 5 OK`);
-      } catch (dbErr: any) {
-        console.warn(`[Upload] Step 5 FAILED (non-critical):`, dbErr);
-        alert(`[DB 저장 오류]\n\n${dbErr?.message || dbErr?.code || String(dbErr)}`);
-      }
+      // 5. Save to excel_uploads table (including form fields)
+      console.log(`[Upload] Step 5 - Saving to excel_uploads...`);
+      await companyService.addExcelUpload({
+        fileName: file.name,
+        fileSize: file.size,
+        fileUrl: fileUrl || undefined,
+        sheetName: rawData.sheetName,
+        totalRows: rawData.data.length,
+        parsedData: rawData.data,
+        columnHeaders: rawData.headers,
+        uploadNote: reqDesc || undefined,
+        orgName: reqOrg || undefined,
+        docNum: reqDoc || undefined,
+      });
+      console.log(`[Upload] Step 5 OK`);
 
       // 6. Fetch current DB
       console.log(`[Upload] Step 6 - Fetching DB companies...`);
