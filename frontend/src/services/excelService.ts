@@ -141,9 +141,23 @@ export const excelService = {
 
     if (maxCols === 0) return [];
 
+    // Determine the actual column range of the header row
+    // (maxCols only counts non-empty cells; a leading empty cell shifts indices)
+    let lastHeaderCol = -1;
+    for (let j = 0; j < rows[headerRowIdx].length; j++) {
+      if (
+        rows[headerRowIdx][j] !== undefined &&
+        rows[headerRowIdx][j] !== null &&
+        String(rows[headerRowIdx][j]).trim() !== ''
+      ) {
+        lastHeaderCol = j;
+      }
+    }
+    const headerColCount = lastHeaderCol + 1;
+
     // Map column index by known field names from the detected header row
     const headers: string[] = [];
-    for (let j = 0; j < maxCols; j++) {
+    for (let j = 0; j < headerColCount; j++) {
       headers.push(
         rows[headerRowIdx][j] !== undefined
           ? String(rows[headerRowIdx][j]).trim()
@@ -424,12 +438,38 @@ export const excelService = {
         .join('\n');
     }
 
+    // Determine the actual column range of the header row
+    // (maxCols only counts non-empty cells; a leading empty cell shifts indices)
+    let lastHeaderCol = -1;
+    for (let j = 0; j < rows[headerRowIdx].length; j++) {
+      if (
+        rows[headerRowIdx][j] !== undefined &&
+        rows[headerRowIdx][j] !== null &&
+        String(rows[headerRowIdx][j]).trim() !== ''
+      ) {
+        lastHeaderCol = j;
+      }
+    }
+    const headerColCount = lastHeaderCol + 1;
+
     // Extract header names from the identified header row
     const rawHeaders: string[] = [];
-    for (let j = 0; j < maxCols; j++) {
+    for (let j = 0; j < headerColCount; j++) {
       const cell = rows[headerRowIdx][j];
       rawHeaders.push(cell !== undefined && cell !== null ? String(cell).trim() : '');
     }
+
+    // Determine the meaningful column range:
+    //   startIdx – skip leading empty headers, prefer "연번" / "순번" as the first column
+    //   endIdx   – exclude columns from "지원기관명" (support org name) onward
+    let startIdx = rawHeaders.findIndex((h) => h !== '');
+    const seqIdx = rawHeaders.findIndex((h) => h === '연번' || h === '순번');
+    if (seqIdx >= 0) startIdx = seqIdx;
+    if (startIdx < 0) startIdx = 0;
+
+    let endIdx = rawHeaders.length;
+    const orgIdx = rawHeaders.findIndex((h) => h.startsWith('지원기관명'));
+    if (orgIdx >= 0) endIdx = orgIdx;
 
     // Data rows are those after the header row with at least one non-empty cell
     const dataRows = rows.slice(headerRowIdx + 1).filter(
@@ -438,12 +478,11 @@ export const excelService = {
         row.some((c: any) => c !== undefined && c !== null && String(c).trim() !== '')
     );
 
-    // Find the last column index that has actual data across ALL data rows
-    // This trims empty trailing columns (columns meant for the org to fill in later)
+    // Find the last column index (in raw space) that has actual data across ALL data rows
     const lastColWithData =
       dataRows.length > 0
         ? dataRows.reduce((lastCol, row) => {
-            for (let j = Math.min(row.length, rawHeaders.length) - 1; j >= 0; j--) {
+            for (let j = Math.min(row.length, endIdx) - 1; j >= startIdx; j--) {
               if (
                 row[j] !== undefined &&
                 row[j] !== null &&
@@ -454,23 +493,30 @@ export const excelService = {
             }
             return lastCol;
           }, -1)
-        : maxCols - 1;
+        : endIdx - 1;
 
-    if (lastColWithData < 0) {
-      return { headers: rawHeaders, data: [], sheetName, title, description };
-    }
+    // Trimmed header list before we know the data end
+    const trimmedHeaders = rawHeaders.slice(startIdx, endIdx);
 
-    // Trim headers to only include columns up to the last data column
-    const headers = rawHeaders.slice(0, lastColWithData + 1);
+    let headers: string[];
+    let data: Record<string, any>[];
 
-    // Build data objects with trimmed headers
-    const data = dataRows.map((row) => {
-      const obj: Record<string, any> = {};
-      headers.forEach((h, i) => {
-        obj[h] = i < row.length && row[i] !== undefined ? row[i] : null;
+    if (lastColWithData < startIdx) {
+      // No data in the meaningful column range
+      headers = trimmedHeaders;
+      data = [];
+    } else {
+      const actualEnd = Math.min(endIdx, lastColWithData + 1);
+      headers = rawHeaders.slice(startIdx, actualEnd);
+      data = dataRows.map((row) => {
+        const obj: Record<string, any> = {};
+        headers.forEach((h, i) => {
+          const colIdx = startIdx + i;
+          obj[h] = colIdx < row.length && row[colIdx] !== undefined ? row[colIdx] : null;
+        });
+        return obj;
       });
-      return obj;
-    });
+    }
 
     return { headers, data, sheetName, title, description };
   },
