@@ -279,17 +279,15 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                       {company.supportField}
                     </span>
                   )}
-                  {company?.histories && company.histories.length > 0 && (
-                    <>
-                      <span className="text-[10px] font-semibold text-amber-600 ml-1">최근 지원사업명</span>
-                      {[...new Set(company.histories.map(h => h.programName))].slice(0, 3).map((name) => (
-                        <span key={name} className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-semibold rounded-full border border-amber-100 flex items-center gap-1">
-                          <svg className="w-3 h-3 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                          {name}
-                        </span>
-                      ))}
-                    </>
-                  )}
+                  {company?.histories && company.histories.length > 0 && (() => {
+                    const h = company.histories[0];
+                    return (
+                      <span className="px-2 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-semibold rounded-full border border-amber-100 flex items-center gap-1 whitespace-nowrap">
+                        <svg className="w-3 h-3 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                        {h.year} {h.programName}{h.projectName ? ` (${h.projectName})` : ""}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               <div className="flex gap-2">
