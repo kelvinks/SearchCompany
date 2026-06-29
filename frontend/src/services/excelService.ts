@@ -337,7 +337,7 @@ export const excelService = {
     const filePath = `excel-uploads/${fileName}`;
     
     const { error } = await supabase.storage
-      .from("excel-files")
+      .from("search_excel")
       .upload(filePath, file);
     
     if (error) {
@@ -346,7 +346,7 @@ export const excelService = {
     }
     
     const { data } = supabase.storage
-      .from("excel-files")
+      .from("search_excel")
       .getPublicUrl(filePath);
     
     return data?.publicUrl || null;
