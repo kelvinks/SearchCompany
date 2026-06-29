@@ -91,6 +91,7 @@ export default function DashboardPage() {
         console.log(`[Upload] Step 5 OK`);
       } catch (dbErr: any) {
         console.warn(`[Upload] Step 5 FAILED (non-critical):`, dbErr);
+        alert(`[DB 저장 오류]\n\n${dbErr?.message || dbErr?.code || String(dbErr)}`);
       }
 
       // 6. Fetch current DB
