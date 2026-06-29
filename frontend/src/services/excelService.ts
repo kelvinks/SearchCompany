@@ -327,35 +327,32 @@ export const excelService = {
   },
 
   /**
-   * Uploads file to Supabase Storage and returns public URL.
+   * Uploads file to Vercel Blob Storage and returns public URL.
    */
   async uploadFileToStorage(file: File): Promise<string | null> {
-    if (!supabase) {
-      console.warn("[Storage] Supabase not configured");
+    console.log(`[Storage] Uploading to Vercel Blob: ${file.name} (${file.size} bytes)`);
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/blob-upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        console.error(`[Storage] Upload FAILED:`, errData.error);
+        return null;
+      }
+
+      const result = await response.json();
+      console.log(`[Storage] Upload OK:`, result.url);
+      return result.url || null;
+    } catch (err: any) {
+      console.error(`[Storage] Upload error:`, err.message);
       return null;
     }
-    
-    const rawExt = file.name.split(".").pop() || "xlsx";
-    const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "xlsx";
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `excel-uploads/${fileName}`;
-    
-    console.log(`[Storage] Uploading: ${filePath} (${file.size} bytes)`);
-    
-    const { data, error } = await supabase.storage
-      .from("search_excel")
-      .upload(filePath, file, { contentType: "application/octet-stream" });
-    
-    if (error) {
-      console.error(`[Storage] Upload FAILED:`, error.message, error);
-      return null;
-    }
-    
-    console.log(`[Storage] Upload OK:`, data?.path);
-    const { data: urlData } = supabase.storage
-      .from("search_excel")
-      .getPublicUrl(filePath);
-    
-    return urlData?.publicUrl || null;
   },
 };
