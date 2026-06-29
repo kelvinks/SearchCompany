@@ -117,31 +117,83 @@ export const excelService = {
   parseWorkbook(workbook: XLSX.WorkBook): Partial<Company>[] {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
 
-    return jsonData.map((d, index) => {
-      const companyName = d["기업명"] || d["업체명"] || d["회사명"] || d["상호"] || "";
-      const businessNumber = String(d["사업자등록번호"] || d["사업자번호"] || d["등록번호"] || "");
-      const location = d["소재지"] || d["주소"] || d["위치"] || "";
-      const supportField = d["지원분야"] || d["신청분야"] || d["사업분야"] || "";
-      const appliedProgramName = d["지원사업명"] || d["사업명"] || d["지원사업"] || "";
-      const appliedProjectName = d["지원과제명"] || d["과제명"] || d["지원과제"] || "";
+    // Read all rows as arrays (header: 1)
+    const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      const cleanStr = (val: unknown): string => {
-        if (!val) return "";
-        return String(val).trim();
-      };
+    if (rows.length === 0) return [];
 
-      return {
-        id: `upload-${Date.now()}-${index}`,
-        companyName: cleanStr(companyName),
-        businessNumber: cleanStr(businessNumber).replace(/[^0-9]/g, ""),
-        location: cleanStr(location),
-        supportField: cleanStr(supportField),
-        appliedProgramName: cleanStr(appliedProgramName),
-        appliedProjectName: cleanStr(appliedProjectName),
-      };
-    });
+    // Find the row with the most non-empty cells → this is the header row
+    let maxCols = 0;
+    let headerRowIdx = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (!rows[i]) continue;
+      const count = rows[i].filter(
+        (c: any) => c !== undefined && c !== null && String(c).trim() !== ''
+      ).length;
+      if (count > maxCols) {
+        maxCols = count;
+        headerRowIdx = i;
+      }
+    }
+
+    if (maxCols === 0) return [];
+
+    // Map column index by known field names from the detected header row
+    const headers: string[] = [];
+    for (let j = 0; j < maxCols; j++) {
+      headers.push(
+        rows[headerRowIdx][j] !== undefined
+          ? String(rows[headerRowIdx][j]).trim()
+          : ''
+      );
+    }
+
+    const getColIndex = (...names: string[]) => {
+      for (const name of names) {
+        const idx = headers.indexOf(name);
+        if (idx !== -1) return idx;
+      }
+      return -1;
+    };
+
+    const companyNameIdx = getColIndex("기업명", "업체명", "회사명", "상호");
+    const brnIdx = getColIndex("사업자등록번호", "사업자번호", "등록번호");
+    const locationIdx = getColIndex("소재지", "주소", "위치");
+    const supportFieldIdx = getColIndex("지원분야", "신청분야", "사업분야");
+    const programNameIdx = getColIndex("지원사업명", "사업명", "지원사업");
+    const projectNameIdx = getColIndex("지원과제명", "과제명", "지원과제");
+
+    // Data rows after the header row
+    const dataRows = rows.slice(headerRowIdx + 1).filter(
+      (row) =>
+        row &&
+        row.some(
+          (c: any) => c !== undefined && c !== null && String(c).trim() !== ''
+        )
+    );
+
+    const cleanStr = (val: unknown): string => {
+      if (!val) return "";
+      return String(val).trim();
+    };
+
+    return dataRows.map((row, index) => ({
+      id: `upload-${Date.now()}-${index}`,
+      companyName:
+        companyNameIdx >= 0 ? cleanStr(row[companyNameIdx]) : "",
+      businessNumber:
+        brnIdx >= 0
+          ? cleanStr(row[brnIdx]).replace(/[^0-9]/g, "")
+          : "",
+      location: locationIdx >= 0 ? cleanStr(row[locationIdx]) : "",
+      supportField:
+        supportFieldIdx >= 0 ? cleanStr(row[supportFieldIdx]) : "",
+      appliedProgramName:
+        programNameIdx >= 0 ? cleanStr(row[programNameIdx]) : "",
+      appliedProjectName:
+        projectNameIdx >= 0 ? cleanStr(row[projectNameIdx]) : "",
+    }));
   },
 
   /**
@@ -320,10 +372,82 @@ export const excelService = {
   parseRawWorkbook(workbook: XLSX.WorkBook): { headers: string[]; data: Record<string, any>[]; sheetName: string } {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
-    const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
 
-    return { headers, data: jsonData, sheetName };
+    // Read all rows as arrays (header: 1)
+    const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    if (rows.length === 0) {
+      return { headers: [], data: [], sheetName };
+    }
+
+    // Find the row with the most non-empty cells → this is the header row
+    // (skips title rows like row 1, 3 which have only 1-2 columns)
+    let maxCols = 0;
+    let headerRowIdx = 0;
+    for (let i = 0; i < rows.length; i++) {
+      if (!rows[i]) continue;
+      const count = rows[i].filter(
+        (c: any) => c !== undefined && c !== null && String(c).trim() !== ''
+      ).length;
+      if (count > maxCols) {
+        maxCols = count;
+        headerRowIdx = i;
+      }
+    }
+
+    if (maxCols === 0) {
+      return { headers: [], data: [], sheetName };
+    }
+
+    // Extract header names from the identified header row
+    const rawHeaders: string[] = [];
+    for (let j = 0; j < maxCols; j++) {
+      const cell = rows[headerRowIdx][j];
+      rawHeaders.push(cell !== undefined && cell !== null ? String(cell).trim() : '');
+    }
+
+    // Data rows are those after the header row with at least one non-empty cell
+    const dataRows = rows.slice(headerRowIdx + 1).filter(
+      (row) =>
+        row &&
+        row.some((c: any) => c !== undefined && c !== null && String(c).trim() !== '')
+    );
+
+    // Find the last column index that has actual data across ALL data rows
+    // This trims empty trailing columns (columns meant for the org to fill in later)
+    const lastColWithData =
+      dataRows.length > 0
+        ? dataRows.reduce((lastCol, row) => {
+            for (let j = Math.min(row.length, rawHeaders.length) - 1; j >= 0; j--) {
+              if (
+                row[j] !== undefined &&
+                row[j] !== null &&
+                String(row[j]).trim() !== ''
+              ) {
+                return Math.max(lastCol, j);
+              }
+            }
+            return lastCol;
+          }, -1)
+        : maxCols - 1;
+
+    if (lastColWithData < 0) {
+      return { headers: rawHeaders, data: [], sheetName };
+    }
+
+    // Trim headers to only include columns up to the last data column
+    const headers = rawHeaders.slice(0, lastColWithData + 1);
+
+    // Build data objects with trimmed headers
+    const data = dataRows.map((row) => {
+      const obj: Record<string, any> = {};
+      headers.forEach((h, i) => {
+        obj[h] = i < row.length && row[i] !== undefined ? row[i] : null;
+      });
+      return obj;
+    });
+
+    return { headers, data, sheetName };
   },
 
   /**
