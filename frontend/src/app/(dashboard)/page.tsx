@@ -38,16 +38,36 @@ export default function DashboardPage() {
     console.log(`[Upload] Start: ${file.name} (${file.size} bytes, type: ${file.type})`);
     setIsUploading(true);
     try {
-      // 1. Extract password from filename
+      // 1. Build password attempt list (manual input first, then filename-extracted)
       const filePassword = excelService.extractPasswordFromFileName(file.name);
-      const effectivePassword = filePassword || excelPassword || undefined;
-      console.log(`[Upload] Step 1 - Password: ${effectivePassword ? "****" : "none"}, filePattern: ${!!filePassword}, manual: ${!!excelPassword}`);
+      const passwordAttempts: (string | undefined)[] = [];
+      if (excelPassword) passwordAttempts.push(excelPassword);
+      if (filePassword && filePassword !== excelPassword) passwordAttempts.push(filePassword);
+      if (passwordAttempts.length === 0) passwordAttempts.push(undefined);
+      console.log(`[Upload] Step 1 - ${passwordAttempts.length} password attempt(s), manual: ${!!excelPassword}, filePattern: ${!!filePassword}`);
+
+      // Helper: try each password until one succeeds
+      const tryPasswords = async <T,>(label: string, fn: (pw?: string) => Promise<T>): Promise<T> => {
+        let lastError: any;
+        for (const pw of passwordAttempts) {
+          try {
+            const result = await fn(pw);
+            console.log(`[Upload] ${label} OK`);
+            return result;
+          } catch (err: any) {
+            lastError = err;
+            console.warn(`[Upload] ${label} failed with pw=${pw ? '****' : 'none'}:`, err.message);
+            // Try next password
+          }
+        }
+        throw lastError;
+      };
       
       // 2. Parse Excel data for matching
       console.log(`[Upload] Step 2 - Parsing Excel for matching...`);
       let parsedCandidates;
       try {
-        parsedCandidates = await excelService.parseUploadFile(file, effectivePassword);
+        parsedCandidates = await tryPasswords('Step 2', (pw) => excelService.parseUploadFile(file, pw));
         console.log(`[Upload] Step 2 OK - ${parsedCandidates.length} candidates parsed`);
       } catch (err: any) {
         console.error(`[Upload] Step 2 FAILED:`, err);
@@ -58,7 +78,7 @@ export default function DashboardPage() {
       console.log(`[Upload] Step 3 - Parsing raw data...`);
       let rawData;
       try {
-        rawData = await excelService.parseRawData(file, effectivePassword);
+        rawData = await tryPasswords('Step 3', (pw) => excelService.parseRawData(file, pw));
         console.log(`[Upload] Step 3 OK - headers: ${rawData.headers.length}, rows: ${rawData.data.length}`);
       } catch (err: any) {
         console.error(`[Upload] Step 3 FAILED:`, err);
