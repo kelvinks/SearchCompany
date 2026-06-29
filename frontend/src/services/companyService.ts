@@ -759,6 +759,50 @@ export const companyService = {
     return data;
   },
 
+  async updateExcelUpload(
+    id: string,
+    updates: {
+      parsedData: Record<string, any>[];
+      columnHeaders: string[];
+      totalRows: number;
+      title?: string;
+      description?: string;
+    }
+  ): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      const stored = localStorage.getItem("gbsa_excel_uploads");
+      const uploads = stored ? JSON.parse(stored) : [];
+      const idx = uploads.findIndex((u: any) => u.id === id);
+      if (idx >= 0) {
+        uploads[idx].parsed_data = updates.parsedData;
+        uploads[idx].column_headers = updates.columnHeaders;
+        uploads[idx].total_rows = updates.totalRows;
+        uploads[idx].sheet_title = updates.title || null;
+        uploads[idx].sheet_description = updates.description || null;
+        localStorage.setItem("gbsa_excel_uploads", JSON.stringify(uploads));
+      }
+      return true;
+    }
+
+    const { error } = await supabase
+      .from("excel_uploads")
+      .update({
+        parsed_data: updates.parsedData,
+        column_headers: updates.columnHeaders,
+        total_rows: updates.totalRows,
+        sheet_title: updates.title || null,
+        sheet_description: updates.description || null,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating excel upload:", error);
+      return false;
+    }
+
+    return true;
+  },
+
   async deleteExcelUpload(id: string): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) {
       const stored = localStorage.getItem("gbsa_excel_uploads");

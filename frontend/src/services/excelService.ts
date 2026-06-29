@@ -589,6 +589,31 @@ export const excelService = {
   },
 
   /**
+   * Fetches an already-uploaded file from a URL, re-parses it with the current
+   * cleaning logic, and returns the result. Used for re-processing existing files.
+   */
+  async reparseFileFromUrl(url: string): Promise<{
+    headers: string[];
+    data: Record<string, any>[];
+    sheetName: string;
+    title?: string;
+    description?: string;
+  }> {
+    console.log(`[ExcelService] reparseFileFromUrl start: ${url}`);
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`파일 다운로드 실패 (${response.status})`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: "array" });
+    console.log(`[ExcelService] reparseFileFromUrl – workbook sheets: ${workbook.SheetNames}`);
+
+    return this.parseRawWorkbook(workbook);
+  },
+
+  /**
    * Uploads file to Vercel Blob Storage and returns public URL.
    */
   async uploadFileToStorage(file: File, folder: string = "request"): Promise<string | null> {
