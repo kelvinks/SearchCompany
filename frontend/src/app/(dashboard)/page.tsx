@@ -136,13 +136,13 @@ export default function DashboardPage() {
         },
       }).catch((e) => console.warn("Search log save failed:", e));
 
-      // 9. Save results to sessionStorage and navigate to verification-results page
+      // 9. Save results to sessionStorage and navigate to history page
       sessionStorage.setItem("gbsa_search_results", JSON.stringify({
         type: "BATCH",
         results: matchedResults,
         title: file.name,
       }));
-      router.push("/verification-results");
+      router.push("/history");
       console.log(`[Upload] All steps completed successfully`);
 
     } catch (error: any) {

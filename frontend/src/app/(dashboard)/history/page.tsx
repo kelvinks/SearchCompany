@@ -6,6 +6,7 @@ import BusinessNumber from "@/components/BusinessNumber";
 import { Company, SupportHistory } from "@/data/mockData";
 import { matchingService } from "@/services/matchingService";
 import HistoryModal from "@/components/modal/HistoryModal";
+import SearchResultModal from "@/components/modal/SearchResultModal";
 
 const formatTime = (isoString: string) => {
   const date = new Date(isoString);
@@ -76,6 +77,28 @@ export default function HistoryPage() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [batchFallbackPending, setBatchFallbackPending] = useState<SearchLog[]>([]);
+
+  // Search result popup from 통합검색
+  const [searchPopup, setSearchPopup] = useState<{
+    type: "SINGLE" | "BATCH";
+    results?: Company[];
+    result?: Company;
+    title?: string;
+    query?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("gbsa_search_results");
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          sessionStorage.removeItem("gbsa_search_results");
+          setSearchPopup(data);
+        } catch { /* ignore */ }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -382,6 +405,17 @@ export default function HistoryPage() {
           company={selectedCompany}
           onClose={() => setSelectedCompany(null)}
           onUpdateHistory={handleUpdateHistory}
+        />
+      )}
+
+      {searchPopup && (
+        <SearchResultModal
+          type={searchPopup.type}
+          results={searchPopup.results}
+          result={searchPopup.result}
+          title={searchPopup.title}
+          query={searchPopup.query}
+          onClose={() => setSearchPopup(null)}
         />
       )}
     </div>
