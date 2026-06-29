@@ -308,7 +308,7 @@ export default function HistoryPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap justify-end">
                     {item.isBulk && (
-                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-indigo-100 text-indigo-700 tracking-wide">대량</span>
+                      <span className="font-semibold text-xs px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700">대량</span>
                     )}
                     <span className={`font-semibold text-xs px-3 py-1.5 rounded-full ${
                       item.riskLevel === "High Risk" ? "bg-red-100 text-red-700" :

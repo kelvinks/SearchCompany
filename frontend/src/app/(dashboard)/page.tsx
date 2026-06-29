@@ -244,41 +244,60 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border-2 border-dashed border-blue-300 p-8 flex flex-col items-center justify-start transition-colors relative h-full">
           <h3 className="text-lg font-bold mb-4 text-[var(--color-gbsa-primary)] relative z-10 w-full text-left">대량 기업 검색</h3>
           
-          {/* Top Form Fields */}
-          <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-left relative z-10" onClick={(e) => e.stopPropagation()}>
-            <div className="flex flex-col gap-1.5 relative">
-              <label className="text-sm font-semibold text-gray-700 ml-1">요청기관</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                </span>
-                <input 
-                  type="text" 
-                  value={reqOrg}
-                  onChange={(e) => setReqOrg(e.target.value)}
-                  placeholder="기관명을 입력하세요" 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
-                />
+          {/* Top Form Fields: Left column (1fr) + Right column (3fr) */}
+          <div className="w-full grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-left relative z-10" onClick={(e) => e.stopPropagation()}>
+            {/* Left Column: 요청기관, 문서번호, 엑셀비밀번호 stacked */}
+            <div className="md:col-span-1 flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5 relative">
+                <label className="text-sm font-semibold text-gray-700 ml-1">요청기관</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  </span>
+                  <input 
+                    type="text" 
+                    value={reqOrg}
+                    onChange={(e) => setReqOrg(e.target.value)}
+                    placeholder="기관명을 입력하세요" 
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5 relative">
+                <label className="text-sm font-semibold text-gray-700 ml-1">문서번호</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                  </span>
+                  <input 
+                    type="text" 
+                    value={reqDoc}
+                    onChange={(e) => setReqDoc(e.target.value)}
+                    placeholder="문서번호를 입력하세요" 
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5 relative">
+                <label className="text-sm font-semibold text-gray-700 ml-1">엑셀 비밀번호</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  </span>
+                  <input 
+                    type="password" 
+                    value={excelPassword}
+                    onChange={(e) => setExcelPassword(e.target.value)}
+                    placeholder="암호화된 파일의 비밀번호" 
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                  />
+                </div>
               </div>
             </div>
-            <div className="flex flex-col gap-1.5 relative">
-              <label className="text-sm font-semibold text-gray-700 ml-1">문서번호</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                </span>
-                <input 
-                  type="text" 
-                  value={reqDoc}
-                  onChange={(e) => setReqDoc(e.target.value)}
-                  placeholder="문서번호를 입력하세요" 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5 md:col-span-2 relative">
+            {/* Right Column (3fr): 요청내용 */}
+            <div className="md:col-span-3 flex flex-col gap-1.5 relative">
               <label className="text-sm font-semibold text-gray-700 ml-1">요청내용</label>
-              <div className="relative">
+              <div className="relative h-full">
                 <span className="absolute left-3.5 top-5 text-gray-400">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 </span>
@@ -289,24 +308,6 @@ export default function DashboardPage() {
                   rows={4} 
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm resize-none bg-white"
                 ></textarea>
-              </div>
-            </div>
-          </div>
-
-          {/* Excel Password Input */}
-          <div className="w-full mb-4 relative z-10" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                </span>
-                <input 
-                  type="password" 
-                  value={excelPassword}
-                  onChange={(e) => setExcelPassword(e.target.value)}
-                  placeholder="엑셀 비밀번호 (암호화된 파일만 해당)" 
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
-                />
               </div>
             </div>
           </div>
