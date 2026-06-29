@@ -745,7 +745,7 @@ export const companyService = {
 
     if (error) {
       console.error("Error adding excel upload:", error);
-      return null;
+      throw error;
     }
 
     return data;

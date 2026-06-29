@@ -19,7 +19,7 @@ export default function Header() {
     title = "검증결과";
     subtitle = "최근 통합검색을 통해 검증한 결과 목록입니다.";
   } else if (pathname === "/excel-management") {
-    title = "엑셀 관리";
+    title = "엑셀관리";
     subtitle = "업로드된 엑셀 파일과 파싱된 데이터를 조회하고 관리합니다.";
   } else if (pathname === "/font-test") {
     title = "폰트 테스트";

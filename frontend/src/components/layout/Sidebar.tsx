@@ -79,7 +79,7 @@ export default function Sidebar() {
       ),
     },
     {
-      name: "엑셀 관리",
+      name: "엑셀관리",
       href: "/excel-management",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
