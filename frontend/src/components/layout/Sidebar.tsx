@@ -52,7 +52,7 @@ export default function Sidebar() {
       ),
     },
     {
-      name: "기업DB 관리",
+      name: "등록기업",
       href: "/database",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -6,11 +6,11 @@ import FontSelector from "./FontSelector";
 export default function Header() {
   const pathname = usePathname();
 
-  let title = "기업 중복 수혜 검증";
-  let subtitle = "업로드한 엑셀 데이터를 기반으로 내부 지원 이력을 확인 하세요.";
+  let title = "통합검색";
+  let subtitle = "엑셀 파일 업로드 또는 단일 검색으로 중복 수혜 여부를 검증합니다.";
 
   if (pathname === "/database") {
-    title = "기업 DB 관리";
+    title = "등록기업";
     subtitle = "내부에 등록된 모든 기업 데이터베이스를 조회하고 관리합니다.";
   } else if (pathname === "/history") {
     title = "검색 기록";
