@@ -55,7 +55,7 @@ async function runDatabaseIntegrationTest() {
         year: "2026",
         program_name: "임시 테스트 지원사업",
         project_name: "AI 로봇 고도화 과제",
-        status: "진행중",
+        status: "선정",
         selected_amount: 10000000,
         support_amount: 8000000,
         notes: "휴지통 트리거 테스트용"

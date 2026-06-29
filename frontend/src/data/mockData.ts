@@ -4,7 +4,7 @@ export type SupportHistory = {
   year: string;
   programName: string;
   projectName?: string;  // 지원과제명 (검색 1순위)
-  status: "완료" | "포기" | "제외" | "진행중";
+  status: "선정" | "완료" | "포기" | "제외";
   selectedAmount: number;
   supportAmount: number;
   notes?: string;

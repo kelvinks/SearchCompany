@@ -208,7 +208,7 @@ export const matchingService = {
         duplicateReason = `유사 지원 분야 키워드 [${matchedKeywordsStr}] 중복 감지. 관련 과거 이력: ${overlapDetails}`;
         systemNote = `⚠️ [중복 수혜 의심] ${systemNoteDetail} 과거 수혜 이력 중 유사 사업 키워드(${matchedKeywordsStr})가 포함된 내역이 발견되었습니다. 중복 지원 여부를 신중히 검토하십시오.`;
       } else {
-        systemNote = `✅ [확인 필요] ${systemNoteDetail} 등록된 기업이나, 최근 완료/진행중인 과거 이력 중 신청 사업 분야(${candidateSupportField || "미지정"})와 중복되는 유사 키워드는 검출되지 않았습니다.`;
+        systemNote = `✅ [확인 필요] ${systemNoteDetail} 등록된 기업이나, 최근 완료/선정인 과거 이력 중 신청 사업 분야(${candidateSupportField || "미지정"})와 중복되는 유사 키워드는 검출되지 않았습니다.`;
       }
 
       return {

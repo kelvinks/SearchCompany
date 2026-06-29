@@ -16,6 +16,19 @@ interface DBManageModalProps {
   onClose: () => void;
 }
 
+const formatNumberWithCommas = (value: string | number): string => {
+  if (value === undefined || value === null) return "";
+  const cleanValue = value.toString().replace(/[^0-9]/g, "");
+  if (!cleanValue) return "";
+  return Number(cleanValue).toLocaleString();
+};
+
+const handleAmountChange = (setter: (val: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const rawValue = e.target.value;
+  const cleanValue = rawValue.replace(/[^0-9]/g, "");
+  setter(cleanValue);
+};
+
 export default function DBManageModal({ company, onClose }: DBManageModalProps) {
   useEffect(() => {
     const originalBodyOverflow = document.body.style.overflow;
@@ -39,7 +52,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
   const [editYear, setEditYear] = useState('');
   const [editProgramName, setEditProgramName] = useState('');
   const [editProjectName, setEditProjectName] = useState('');
-  const [editStatus, setEditStatus] = useState<"완료" | "포기" | "제외" | "진행중">('완료');
+  const [editStatus, setEditStatus] = useState<"선정" | "완료" | "포기" | "제외">('선정');
   const [editSelectedAmount, setEditSelectedAmount] = useState('');
   const [editSupportAmount, setEditSupportAmount] = useState('');
   const [editNotes, setEditNotes] = useState('');
@@ -132,7 +145,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
     setEditYear(h.year);
     setEditProgramName(h.programName);
     setEditProjectName(h.projectName || '');
-    setEditStatus(h.status as "완료" | "포기" | "제외" | "진행중");
+    setEditStatus(h.status as "선정" | "완료" | "포기" | "제외");
     setEditSelectedAmount(h.selectedAmount.toString());
     setEditSupportAmount(h.supportAmount.toString());
     setEditNotes(h.notes || '');
@@ -168,7 +181,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
   }, []);
   const [programName, setProgramName] = useState("");
   const [projectName, setProjectName] = useState("");
-  const [status, setStatus] = useState<"완료" | "포기" | "제외" | "진행중">("완료");
+  const [status, setStatus] = useState<"선정" | "완료" | "포기" | "제외">("선정");
   const [selectedAmount, setSelectedAmount] = useState("");
   const [supportAmount, setSupportAmount] = useState("");
   const [notes, setNotes] = useState("");
@@ -438,8 +451,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-md ${
+                            history.status === "선정" ? "bg-blue-100 text-blue-700" :
                             history.status === "완료" ? "bg-green-100 text-green-700" :
-                            history.status === "진행중" ? "bg-blue-100 text-blue-700" :
                             history.status === "포기" ? "bg-gray-100 text-gray-700" :
                             "bg-red-100 text-red-700"
                           }`}>
@@ -504,8 +517,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                                     상태
                                   </label>
                                   <select value={editStatus} onChange={(e) => setEditStatus(e.target.value as any)} className="w-full h-[38px] px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white">
+                                    <option value="선정">선정</option>
                                     <option value="완료">완료</option>
-                                    <option value="진행중">진행중</option>
                                     <option value="포기">포기</option>
                                     <option value="제외">제외</option>
                                   </select>
@@ -515,14 +528,14 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                                     <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     선정금액(원)
                                   </label>
-                                  <input type="number" value={editSelectedAmount} onChange={(e) => setEditSelectedAmount(e.target.value)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
+                                  <input type="text" value={formatNumberWithCommas(editSelectedAmount)} onChange={handleAmountChange(setEditSelectedAmount)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
                                 </div>
                                 <div className="col-span-1 md:col-span-3">
                                   <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
                                     <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     지원금액(원)
                                   </label>
-                                  <input type="number" value={editSupportAmount} onChange={(e) => setEditSupportAmount(e.target.value)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
+                                  <input type="text" value={formatNumberWithCommas(editSupportAmount)} onChange={handleAmountChange(setEditSupportAmount)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
                                 </div>
                               </div>
                               
@@ -594,9 +607,9 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                     <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     상태
                   </label>
-                  <select value={status} onChange={(e) => setStatus(e.target.value as "완료" | "포기" | "제외" | "진행중")} className="w-full h-10 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white">
+                  <select value={status} onChange={(e) => setStatus(e.target.value as "선정" | "완료" | "포기" | "제외")} className="w-full h-10 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white">
+                    <option value="선정">선정</option>
                     <option value="완료">완료</option>
-                    <option value="진행중">진행중</option>
                     <option value="포기">포기</option>
                     <option value="제외">제외</option>
                   </select>
@@ -606,14 +619,14 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                     <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     선정금액(원)
                   </label>
-                  <input type="number" value={selectedAmount} onChange={(e) => setSelectedAmount(e.target.value)} required placeholder="0" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right" />
+                  <input type="text" value={formatNumberWithCommas(selectedAmount)} onChange={handleAmountChange(setSelectedAmount)} required placeholder="0" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right" />
                 </div>
                 <div className="col-span-3">
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
                     <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     지원금액(원)
                   </label>
-                  <input type="number" value={supportAmount} onChange={(e) => setSupportAmount(e.target.value)} required placeholder="0" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right" />
+                  <input type="text" value={formatNumberWithCommas(supportAmount)} onChange={handleAmountChange(setSupportAmount)} required placeholder="0" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right" />
                 </div>
                 <div className="col-span-20">
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">

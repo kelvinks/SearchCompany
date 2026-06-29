@@ -138,7 +138,7 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
                         <td className="py-3 px-4">
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             history.status === "완료" ? "bg-green-50 text-green-700" :
-                            history.status === "진행중" ? "bg-blue-50 text-blue-700" :
+                            history.status === "선정" ? "bg-blue-50 text-blue-700" :
                             "bg-red-50 text-red-700"
                           }`}>
                             {history.status}

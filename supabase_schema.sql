@@ -21,7 +21,7 @@ create table public.support_histories (
   year varchar(4) not null,
   program_name varchar(255) not null,
   project_name varchar(500),
-  status varchar(50) not null check (status in ('완료', '포기', '제외', '진행중')),
+  status varchar(50) not null check (status in ('선정', '완료', '포기', '제외')),
   selected_amount bigint default 0 not null,
   support_amount bigint default 0 not null,
   notes text,

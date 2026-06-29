@@ -130,7 +130,7 @@ async function seedCompanies() {
   };
 
   const years = ['2023', '2024', '2025', '2026'];
-  const statuses = ['완료', '완료', '완료', '진행중', '진행중', '제외', '포기'];
+  const statuses = ['완료', '완료', '완료', '선정', '선정', '제외', '포기'];
 
   for (const comp of companies) {
     // 기업 데이터 삽입 및 생성된 ID 반환
@@ -166,8 +166,8 @@ async function seedCompanies() {
         const selectedAmount = (Math.floor(Math.random() * 15) + 1) * 10000000;
         let supportAmount = 0;
         
-        if (status === '완료' || status === '진행중') {
-          // 완료 또는 진행중인 경우 선정 금액의 90% ~ 100% 지원금 지급 설정
+        if (status === '완료' || status === '선정') {
+          // 완료 또는 선정인 경우 선정 금액의 90% ~ 100% 지원금 지급 설정
           const ratio = 0.9 + Math.random() * 0.1;
           supportAmount = Math.floor(selectedAmount * ratio / 1000000) * 1000000;
         } else {

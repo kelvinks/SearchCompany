@@ -350,7 +350,7 @@ export default function HistoryModal({
                           <td className="py-3.5 px-4 text-center">
                             <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-md ${
                               history.status === "완료" ? "bg-green-100 text-green-700" :
-                              history.status === "진행중" ? "bg-blue-100 text-blue-700" :
+                              history.status === "선정" ? "bg-blue-100 text-blue-700" :
                               history.status === "포기" ? "bg-gray-100 text-gray-700" :
                               "bg-red-100 text-red-700"
                             }`}>

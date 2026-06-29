@@ -46,7 +46,7 @@ async function runTest() {
         year: "2026",
         program_name: "임의 테스트 지원사업",
         project_name: "AI 테스트 과제",
-        status: "진행중",
+        status: "선정",
         selected_amount: 10000000,
         support_amount: 8000000,
         notes: "자동 테스트 이력"
@@ -60,7 +60,7 @@ async function runTest() {
       year: "2026",
       programName: "임의 테스트 지원사업",
       projectName: "AI 테스트 과제",
-      status: "진행중",
+      status: "선정",
       selectedAmount: 10000000,
       supportAmount: 8000000,
       notes: "자동 테스트 이력"
