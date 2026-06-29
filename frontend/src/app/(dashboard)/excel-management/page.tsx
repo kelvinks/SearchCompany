@@ -191,6 +191,18 @@ export default function ExcelManagementPage() {
                   </a>
                 )}
               </div>
+              {/* Title & Description */}
+              {selectedUpload.sheet_title && (
+                <div className="px-6 py-3 border-b border-gray-100 bg-[#FAFBFC]">
+                  <h4 className="text-base font-semibold text-gray-800">{selectedUpload.sheet_title}</h4>
+                </div>
+              )}
+              {selectedUpload.sheet_description && (
+                <div className="px-6 py-3 border-b border-gray-100 bg-[#FAFBFC]">
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{selectedUpload.sheet_description}</p>
+                </div>
+              )}
+              {/* Data Table */}
               <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-[#F1F5F9] text-gray-600 sticky top-0">

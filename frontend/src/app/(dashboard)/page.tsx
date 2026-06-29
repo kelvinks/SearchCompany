@@ -80,6 +80,8 @@ export default function DashboardPage() {
         totalRows: rawData.data.length,
         parsedData: rawData.data,
         columnHeaders: rawData.headers,
+        title: rawData.title,
+        description: rawData.description,
         uploadNote: reqDesc || undefined,
         orgName: reqOrg || undefined,
         docNum: reqDoc || undefined,

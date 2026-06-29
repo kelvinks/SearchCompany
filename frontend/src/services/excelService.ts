@@ -12,6 +12,8 @@ export type ExcelUploadData = {
   totalRows: number;
   parsedData: Record<string, any>[];
   columnHeaders: string[];
+  title?: string;
+  description?: string;
   createdAt: string;
 };
 
@@ -310,7 +312,7 @@ export const excelService = {
    * Parses Excel file and returns raw data with column headers for storage.
    * For encrypted files, calls server-side API to decrypt first.
    */
-  async parseRawData(file: File, password?: string): Promise<{ headers: string[]; data: Record<string, any>[]; sheetName: string }> {
+  async parseRawData(file: File, password?: string): Promise<{ headers: string[]; data: Record<string, any>[]; sheetName: string; title?: string; description?: string }> {
     console.log(`[ExcelService] parseRawData start: ${file.name}`);
 
     let arrayBuffer: ArrayBuffer;
@@ -369,7 +371,7 @@ export const excelService = {
   /**
    * Parses a workbook and returns raw data with column headers.
    */
-  parseRawWorkbook(workbook: XLSX.WorkBook): { headers: string[]; data: Record<string, any>[]; sheetName: string } {
+  parseRawWorkbook(workbook: XLSX.WorkBook): { headers: string[]; data: Record<string, any>[]; sheetName: string; title?: string; description?: string } {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
@@ -397,6 +399,29 @@ export const excelService = {
 
     if (maxCols === 0) {
       return { headers: [], data: [], sheetName };
+    }
+
+    // Extract title and description from rows before the header row
+    const beforeHeaderRows = rows.slice(0, headerRowIdx).filter(
+      (row) =>
+        row &&
+        row.some((c: any) => c !== undefined && c !== null && String(c).trim() !== '')
+    );
+    let title: string | undefined;
+    let description: string | undefined;
+    if (beforeHeaderRows.length > 0) {
+      const val = beforeHeaderRows[0][0];
+      title = val !== undefined && val !== null ? String(val).trim() : undefined;
+    }
+    if (beforeHeaderRows.length > 1) {
+      description = beforeHeaderRows
+        .slice(1)
+        .map((row) => {
+          const v = row[0];
+          return v !== undefined && v !== null ? String(v).trim() : '';
+        })
+        .filter((s) => s)
+        .join('\n');
     }
 
     // Extract header names from the identified header row
@@ -432,7 +457,7 @@ export const excelService = {
         : maxCols - 1;
 
     if (lastColWithData < 0) {
-      return { headers: rawHeaders, data: [], sheetName };
+      return { headers: rawHeaders, data: [], sheetName, title, description };
     }
 
     // Trim headers to only include columns up to the last data column
@@ -447,7 +472,7 @@ export const excelService = {
       return obj;
     });
 
-    return { headers, data, sheetName };
+    return { headers, data, sheetName, title, description };
   },
 
   /**

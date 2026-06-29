@@ -713,6 +713,8 @@ export const companyService = {
     totalRows: number;
     parsedData: Record<string, any>[];
     columnHeaders: string[];
+    title?: string;
+    description?: string;
     uploadNote?: string;
     orgName?: string;
     docNum?: string;
@@ -740,6 +742,8 @@ export const companyService = {
         total_rows: upload.totalRows,
         parsed_data: upload.parsedData,
         column_headers: upload.columnHeaders,
+        sheet_title: upload.title || null,
+        sheet_description: upload.description || null,
         upload_note: upload.uploadNote || null,
         org_name: upload.orgName || null,
         doc_num: upload.docNum || null,
