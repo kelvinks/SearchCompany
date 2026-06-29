@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { companyService } from "@/services/companyService";
 import { Company, SupportHistory } from "@/data/mockData";
 import HistoryModal from "@/components/modal/HistoryModal";
+import SearchResultModal from "@/components/modal/SearchResultModal";
 import BusinessNumber from "@/components/BusinessNumber";
 import { extractSiGun } from "@/utils/format";
 
@@ -12,8 +13,33 @@ export default function VerificationResultsPage() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Search result popup state
+  const [searchPopup, setSearchPopup] = useState<{
+    type: "SINGLE" | "BATCH";
+    results?: Company[];
+    result?: Company;
+    title?: string;
+    query?: string;
+  } | null>(null);
+
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    // Check for search results from 통합검색 page
+    if (typeof window !== "undefined") {
+      const stored = sessionStorage.getItem("gbsa_search_results");
+      if (stored) {
+        try {
+          const data = JSON.parse(stored);
+          sessionStorage.removeItem("gbsa_search_results");
+          setSearchPopup(data);
+        } catch {
+          // ignore parse errors
+        }
+      }
+    }
   }, []);
 
   const loadData = async () => {
@@ -255,6 +281,18 @@ export default function VerificationResultsPage() {
           onUpdateHistory={handleUpdateHistory}
           onConfirmDuplicate={handleConfirmDuplicate}
           onFalseAlarm={handleFalseAlarm}
+        />
+      )}
+
+      {/* Search Result Popup */}
+      {searchPopup && (
+        <SearchResultModal
+          type={searchPopup.type}
+          results={searchPopup.results}
+          result={searchPopup.result}
+          title={searchPopup.title}
+          query={searchPopup.query}
+          onClose={() => setSearchPopup(null)}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Company } from "@/data/mockData";
 import { companyService } from "@/services/companyService";
 import { matchingService } from "@/services/matchingService";
@@ -8,7 +9,7 @@ import { excelService } from "@/services/excelService";
 
 
 export default function DashboardPage() {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   
   // Single Search State
@@ -22,31 +23,7 @@ export default function DashboardPage() {
   const [reqDesc, setReqDesc] = useState("");
   const [excelPassword, setExcelPassword] = useState("");
   
-  const [activeBatchInfo, setActiveBatchInfo] = useState<{ id: string; title: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Initialize and load companies on mount to avoid hydration mismatch
-  useEffect(() => {
-    const loadData = async () => {
-      const loaded = await companyService.getCompanies();
-      console.log("DEBUG_COMPANIES_LOADED:", loaded.map(c => ({ id: c.id, name: c.companyName, brn: c.businessNumber, dbBrn: c.dbBusinessNumber })));
-      
-      // Check if there is an active batch passed from search logs page
-      if (typeof window !== "undefined") {
-        const activeBatchStr = sessionStorage.getItem("gbsa_active_batch");
-        if (activeBatchStr) {
-          const activeBatch = JSON.parse(activeBatchStr);
-          setCompanies(activeBatch.companies);
-          setActiveBatchInfo({ id: activeBatch.id, title: activeBatch.title });
-          sessionStorage.removeItem("gbsa_active_batch");
-          return;
-        }
-      }
-
-      setCompanies(loaded);
-    };
-    loadData();
-  }, []);
 
   // Excel Upload Handler
   const handleUploadClick = () => {
@@ -126,12 +103,7 @@ export default function DashboardPage() {
       const matchedResults = matchingService.matchCompanies(parsedCandidates, db);
       console.log(`[Upload] Step 7 OK - ${matchedResults.length} results`);
 
-      // 8. Update state
-      setCompanies(matchedResults);
-      setActiveBatchInfo(null);
-
-      // 9. Add BATCH log
-      console.log(`[Upload] Step 9 - Saving search log...`);
+      // 8. Add BATCH log (non-blocking)
       const batchDesc = reqDesc || `${parsedCandidates.length}개사 중복 검증 요청`;
       const batchMeta = {
         orgName: reqOrg || "외부요청",
@@ -144,7 +116,7 @@ export default function DashboardPage() {
         (c) => c.matchStatus === "EXACT" || c.matchStatus === "FUZZY"
       ).length;
 
-      await companyService.addSearchLog({
+      companyService.addSearchLog({
         type: "BATCH",
         riskLevel: duplicateCount > 0 ? "High Risk" : "Safe",
         title: batchMeta.sourceFile,
@@ -161,8 +133,15 @@ export default function DashboardPage() {
         additionalData: {
           results: matchedResults,
         },
-      });
+      }).catch((e) => console.warn("Search log save failed:", e));
 
+      // 9. Save results to sessionStorage and navigate to verification-results page
+      sessionStorage.setItem("gbsa_search_results", JSON.stringify({
+        type: "BATCH",
+        results: matchedResults,
+        title: file.name,
+      }));
+      router.push("/verification-results");
       console.log(`[Upload] All steps completed successfully`);
 
     } catch (error: any) {
@@ -205,30 +184,30 @@ export default function DashboardPage() {
       const matched = matchingService.matchCompany(candidate, db);
       const isDuplicate = matched.matchStatus === "EXACT" || matched.matchStatus === "FUZZY";
       
-      // Add single search history log (non-critical)
-      try {
-        await companyService.addSearchLog({
-          type: "MANUAL",
-          riskLevel: isDuplicate ? "High Risk" : "Safe",
-          title: matched.companyName || singleSearchQuery.trim(),
-          brn: matched.businessNumber || singleSearchQuery.trim(),
-          description: JSON.stringify({
-            desc: "단일 기업 중복 수혜 검증",
-            appliedProgramName: singleSearchProgram.trim(),
-            appliedProjectName: singleSearchProject.trim(),
-            isBulk: false,
-          }),
-          additionalData: {
-            matchedCompany: matched,
-          },
-        });
-      } catch (logErr) {
-        console.warn("Search log save failed (non-critical):", logErr);
-      }
+      // Add single search history log (non-blocking)
+      companyService.addSearchLog({
+        type: "MANUAL",
+        riskLevel: isDuplicate ? "High Risk" : "Safe",
+        title: matched.companyName || singleSearchQuery.trim(),
+        brn: matched.businessNumber || singleSearchQuery.trim(),
+        description: JSON.stringify({
+          desc: "단일 기업 중복 수혜 검증",
+          appliedProgramName: singleSearchProgram.trim(),
+          appliedProjectName: singleSearchProject.trim(),
+          isBulk: false,
+        }),
+        additionalData: {
+          matchedCompany: matched,
+        },
+      }).catch((e) => console.warn("Search log save failed:", e));
 
-      // Reset single search subfields
-      setSingleSearchProgram("");
-      setSingleSearchProject("");
+      // Save result to sessionStorage and navigate to verification-results page
+      sessionStorage.setItem("gbsa_search_results", JSON.stringify({
+        type: "SINGLE",
+        result: matched,
+        query: singleSearchQuery.trim(),
+      }));
+      router.push("/verification-results");
     } catch (err: any) {
       console.error("Single search error:", err);
       alert("검색 중 오류가 발생했습니다.");
@@ -349,63 +328,65 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-5 h-full">
           
           {/* Single Company Search */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border-2 border-dashed border-[var(--color-gbsa-primary)]/40 p-6 flex flex-col justify-center relative overflow-hidden flex-1">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border-2 border-dashed border-[var(--color-gbsa-primary)]/40 p-6 flex flex-col relative overflow-hidden flex-1">
             <div className="absolute top-0 right-0 p-4 opacity-5 text-[var(--color-gbsa-primary)] pointer-events-none">
               <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
             <h3 className="text-lg font-bold mb-4 text-[var(--color-gbsa-primary)] relative z-10">단일 기업 검색</h3>
-            <form onSubmit={handleSingleSearch} className="relative z-10 space-y-3.5">
-              <div className="relative">
-                <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1">기업명 또는 사업자번호</label>
+            <form onSubmit={handleSingleSearch} className="relative z-10 flex flex-col flex-1">
+              <div className="flex-1 space-y-3.5">
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                  </span>
-                  <input 
-                    type="text" 
-                    value={singleSearchQuery}
-                    onChange={(e) => setSingleSearchQuery(e.target.value)}
-                    placeholder="예: 경기테크노밸리 또는 123-45-67890" 
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
-                    required
-                  />
+                  <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1">기업명 또는 사업자번호</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    </span>
+                    <input 
+                      type="text" 
+                      value={singleSearchQuery}
+                      onChange={(e) => setSingleSearchQuery(e.target.value)}
+                      placeholder="예: 경기테크노밸리 또는 123-45-67890" 
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="relative">
-                <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1">지원사업명</label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                  </span>
-                  <input 
-                    type="text" 
-                    value={singleSearchProgram}
-                    onChange={(e) => setSingleSearchProgram(e.target.value)}
-                    placeholder="예: 2024 창업도약패키지 (선택)" 
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
-                  />
+                  <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1">지원사업명</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                    </span>
+                    <input 
+                      type="text" 
+                      value={singleSearchProgram}
+                      onChange={(e) => setSingleSearchProgram(e.target.value)}
+                      placeholder="예: 2024 창업도약패키지 (선택)" 
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="relative">
-                <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1">지원과제명</label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                  </span>
-                  <input 
-                    type="text" 
-                    value={singleSearchProject}
-                    onChange={(e) => setSingleSearchProject(e.target.value)}
-                    placeholder="예: 인공지능 모듈 개발 (선택)" 
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
-                  />
+                  <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1">지원과제명</label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                    </span>
+                    <input 
+                      type="text" 
+                      value={singleSearchProject}
+                      onChange={(e) => setSingleSearchProject(e.target.value)}
+                      placeholder="예: 인공지능 모듈 개발 (선택)" 
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
+                    />
+                  </div>
                 </div>
               </div>
               <button 
                 type="submit" 
-                className="w-full py-2.5 bg-[var(--color-gbsa-primary)] hover:bg-[var(--color-gbsa-secondary)] text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm text-sm"
+                className="w-full mt-auto py-2.5 bg-[var(--color-gbsa-primary)] hover:bg-[var(--color-gbsa-secondary)] text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
