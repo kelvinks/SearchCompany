@@ -86,32 +86,41 @@ export default function DashboardPage() {
       // 3. Parse raw data for storage
       const rawData = await excelService.parseRawData(file, effectivePassword);
       
-      // 4. Upload file to Supabase Storage
-      const fileUrl = await excelService.uploadFileToStorage(file);
+      // 4. Upload file to Supabase Storage (non-critical, continue even if fails)
+      let fileUrl: string | null = null;
+      try {
+        fileUrl = await excelService.uploadFileToStorage(file);
+      } catch (storageErr) {
+        console.warn("Storage upload failed (continuing without file URL):", storageErr);
+      }
 
-      // 5. Save to excel_uploads table
-      await companyService.addExcelUpload({
-        fileName: file.name,
-        fileSize: file.size,
-        fileUrl: fileUrl || undefined,
-        sheetName: rawData.sheetName,
-        totalRows: rawData.data.length,
-        parsedData: rawData.data,
-        columnHeaders: rawData.headers,
-        uploadNote: reqDesc || undefined,
-      });
+      // 5. Save to excel_uploads table (non-critical)
+      try {
+        await companyService.addExcelUpload({
+          fileName: file.name,
+          fileSize: file.size,
+          fileUrl: fileUrl || undefined,
+          sheetName: rawData.sheetName,
+          totalRows: rawData.data.length,
+          parsedData: rawData.data,
+          columnHeaders: rawData.headers,
+          uploadNote: reqDesc || undefined,
+        });
+      } catch (dbErr) {
+        console.warn("excel_uploads save failed (continuing with matching):", dbErr);
+      }
 
-      // 5. Fetch current DB
+      // 6. Fetch current DB
       const db = await companyService.getCompanies();
 
-      // 6. Run Matching logic
+      // 7. Run Matching logic
       const matchedResults = matchingService.matchCompanies(parsedCandidates, db);
 
-      // 7. Update state to show results in verification table
+      // 8. Update state to show results in verification table
       setCompanies(matchedResults);
       setActiveBatchInfo(null); // Clear past batch info on new file upload
 
-      // 8. Add a single BATCH log representing the entire Excel validation run
+      // 9. Add a single BATCH log representing the entire Excel validation run
       const batchDesc = reqDesc || `${parsedCandidates.length}개사 중복 검증 요청`;
       const batchMeta = {
         orgName: reqOrg || "외부요청",
