@@ -45,7 +45,7 @@ export default function ExcelManagementPage() {
     }
     setReparsing(upload.id);
     try {
-      const result = await excelService.reparseFileFromUrl(upload.file_url);
+      const result = await excelService.reparseFileFromUrl(upload.file_url, upload.file_name);
       const ok = await companyService.updateExcelUpload(upload.id, {
         parsedData: result.data,
         columnHeaders: result.headers,

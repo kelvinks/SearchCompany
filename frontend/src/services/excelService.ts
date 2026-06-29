@@ -591,8 +591,12 @@ export const excelService = {
   /**
    * Fetches an already-uploaded file from a URL, re-parses it with the current
    * cleaning logic, and returns the result. Used for re-processing existing files.
+   * Handles password-protected files by extracting the password from the filename.
    */
-  async reparseFileFromUrl(url: string): Promise<{
+  async reparseFileFromUrl(
+    url: string,
+    fileName?: string
+  ): Promise<{
     headers: string[];
     data: Record<string, any>[];
     sheetName: string;
@@ -607,9 +611,56 @@ export const excelService = {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: "array" });
-    console.log(`[ExcelService] reparseFileFromUrl – workbook sheets: ${workbook.SheetNames}`);
 
+    // Try client-side parsing first
+    try {
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      console.log(`[ExcelService] reparseFileFromUrl – client-side OK, sheets: ${workbook.SheetNames}`);
+      return this.parseRawWorkbook(workbook);
+    } catch (err: any) {
+      const errMsg = err?.message || String(err);
+      const isEncryptRelated = /password|encrypt|decrypt|암호| Protected|ole|cfb/i.test(errMsg);
+      if (!fileName || !isEncryptRelated) {
+        throw err;
+      }
+      console.log(`[ExcelService] reparseFileFromUrl – file encrypted, extracting password from fileName`);
+    }
+
+    // Encrypted – extract password from filename and decrypt server-side
+    const password = this.extractPasswordFromFileName(fileName);
+    if (!password) {
+      throw new Error('암호화된 파일이지만 파일명에서 비밀번호를 추출할 수 없습니다.');
+    }
+
+    const base64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    console.log(`[ExcelService] reparseFileFromUrl – calling /api/py-decrypt`);
+
+    const decryptRes = await fetch('/api/py-decrypt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: base64, password }),
+    });
+
+    if (!decryptRes.ok) {
+      const errorData = await decryptRes.json().catch(() => ({}));
+      throw new Error(errorData.error || `서버 복호화 오류 (${decryptRes.status})`);
+    }
+
+    const result = await decryptRes.json();
+    if (!result.success) {
+      throw new Error(result.error || '비밀번호 해제 실패');
+    }
+
+    const binaryString = atob(result.data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    const workbook = XLSX.read(bytes.buffer, { type: 'array' });
+    console.log(`[ExcelService] reparseFileFromUrl – decrypted, sheets: ${workbook.SheetNames}`);
     return this.parseRawWorkbook(workbook);
   },
 
