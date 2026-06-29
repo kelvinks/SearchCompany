@@ -39,7 +39,7 @@ export default function EditCompanyModal({ company, onClose, onUpdate }: EditCom
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm pt-16">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6 relative">
         <button
           className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
@@ -64,7 +64,7 @@ export default function EditCompanyModal({ company, onClose, onUpdate }: EditCom
             <span className="text-gray-700">사업자등록번호</span>
             <input
               type="text"
-              className={`mt-1 block w-full rounded-md border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 ${
+              className={`mt-1 block w-full font-mono rounded-md border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 ${
                 businessNumber && businessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
               }`}
               value={businessNumber}

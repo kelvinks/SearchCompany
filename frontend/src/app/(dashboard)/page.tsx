@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [reqOrg, setReqOrg] = useState("");
   const [reqDoc, setReqDoc] = useState("");
   const [reqDesc, setReqDesc] = useState("");
+  const [excelPassword, setExcelPassword] = useState("");
   
   const [totalHistoriesCount, setTotalHistoriesCount] = useState(0);
   const [activeBatchInfo, setActiveBatchInfo] = useState<{ id: string; title: string } | null>(null);
@@ -75,20 +76,42 @@ export default function DashboardPage() {
 
     setIsUploading(true);
     try {
-      // 1. Parse Excel data
-      const parsedCandidates = await excelService.parseUploadFile(file);
+      // 1. Extract password from filename if _PWXXXX pattern exists
+      const filePassword = excelService.extractPasswordFromFileName(file.name);
+      const effectivePassword = filePassword || excelPassword || undefined;
+      
+      // 2. Parse Excel data for matching
+      const parsedCandidates = await excelService.parseUploadFile(file, effectivePassword);
+      
+      // 3. Parse raw data for storage
+      const rawData = await excelService.parseRawData(file, effectivePassword);
+      
+      // 4. Upload file to Supabase Storage
+      const fileUrl = await excelService.uploadFileToStorage(file);
 
-      // 2. Fetch current DB
+      // 5. Save to excel_uploads table
+      await companyService.addExcelUpload({
+        fileName: file.name,
+        fileSize: file.size,
+        fileUrl: fileUrl || undefined,
+        sheetName: rawData.sheetName,
+        totalRows: rawData.data.length,
+        parsedData: rawData.data,
+        columnHeaders: rawData.headers,
+        uploadNote: reqDesc || undefined,
+      });
+
+      // 5. Fetch current DB
       const db = await companyService.getCompanies();
 
-      // 3. Run Matching logic
+      // 6. Run Matching logic
       const matchedResults = matchingService.matchCompanies(parsedCandidates, db);
 
-      // 4. Update state to show results in verification table
+      // 7. Update state to show results in verification table
       setCompanies(matchedResults);
       setActiveBatchInfo(null); // Clear past batch info on new file upload
 
-      // 5. Add a single BATCH log representing the entire Excel validation run
+      // 8. Add a single BATCH log representing the entire Excel validation run
       const batchDesc = reqDesc || `${parsedCandidates.length}개사 중복 검증 요청`;
       const batchMeta = {
         orgName: reqOrg || "외부요청",
@@ -122,9 +145,22 @@ export default function DashboardPage() {
 
       await updateTotalHistoriesCount();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error parsing or matching file:", error);
-      alert("엑셀 파일 처리 중 오류가 발생했습니다.");
+      const msg = error?.message || String(error);
+      let userMsg = "엑셀 파일 처리 중 오류가 발생했습니다.";
+      if (msg.includes("비밀번호") || msg.includes("password") || msg.includes("decrypt") || msg.includes("암호화")) {
+        userMsg = "암호화된 파일 처리 중 오류가 발생했습니다.\n\n• 파일명에 _PW1234 패턴이 있는지 확인하세요.\n• 수동으로 비밀번호를 입력해 보세요.";
+      } else if (msg.includes("fetch") || msg.includes("Failed to fetch") || msg.includes("network")) {
+        userMsg = "서버 연결에 실패했습니다. 네트워크 연결을 확인하세요.";
+      } else if (msg.includes("서버 오류") || msg.includes("500") || msg.includes("502") || msg.includes("504")) {
+        userMsg = "서버 처리 중 오류가 발생했습니다.\n파일이 너무 크거나 형식이 지원되지 않을 수 있습니다.";
+      } else if (msg.includes("Not Found") || msg.includes("404")) {
+        userMsg = "API 엔드포인트를 찾을 수 없습니다. 관리자에게 문의하세요.";
+      } else if (msg.includes("413") || msg.includes("too large") || msg.includes("size")) {
+        userMsg = "파일이 너무 큽니다. 더 작은 파일로 시도해 보세요.";
+      }
+      alert(userMsg);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -295,6 +331,24 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Excel Password Input */}
+          <div className="w-full mb-4 relative z-10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                </span>
+                <input 
+                  type="password" 
+                  value={excelPassword}
+                  onChange={(e) => setExcelPassword(e.target.value)}
+                  placeholder="엑셀 비밀번호 (암호화된 파일만 해당)" 
+                  className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Upload Dropzone Area */}
           <div className="flex flex-col items-center justify-center group cursor-pointer w-full py-6 rounded-xl hover:bg-blue-50/50 transition-colors border border-transparent hover:border-blue-100" onClick={handleUploadClick}>
             <input 
@@ -399,34 +453,36 @@ export default function DashboardPage() {
             </form>
           </div>
 
-          {/* Stats Cards (Vertical Stack) */}
-          <div className="bg-white/90 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4 overflow-hidden flex-1">
-            <div className="w-10 h-10 shrink-0 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          {/* Stats Cards (Horizontal Row) */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
+              <div className="w-10 h-10 shrink-0 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-red-600 truncate">중복 의심</p>
+                <p className="text-lg font-bold text-red-700 mt-0.5">{duplicateCount}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-red-600 truncate">중복 의심 (분야 겹침)</p>
-              <p className="text-xl font-bold text-red-700 mt-0.5">{duplicateCount}건</p>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
+              <div className="w-10 h-10 shrink-0 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-gray-500 font-medium truncate">신규 요청</p>
+                <p className="text-lg font-bold text-gray-900 mt-0.5">{newCount}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></p>
+              </div>
             </div>
-          </div>
-          
-          <div className="bg-white/90 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4 overflow-hidden flex-1">
-            <div className="w-10 h-10 shrink-0 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-gray-500 font-medium truncate">신규 요청</p>
-              <p className="text-xl font-bold text-gray-900 mt-0.5">{newCount}건</p>
-            </div>
-          </div>
-          
-          <div className="bg-white/90 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4 overflow-hidden flex-1">
-            <div className="w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-[var(--color-gbsa-primary)]">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-gray-500 font-medium truncate">총 누적 지원 건수</p>
-              <p className="text-xl font-bold text-gray-900 mt-0.5">{totalHistoriesCount.toLocaleString()}건</p>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
+              <div className="w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-[var(--color-gbsa-primary)]">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-gray-500 font-medium truncate">총 누적 지원</p>
+                <p className="text-lg font-bold text-gray-900 mt-0.5">{totalHistoriesCount.toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">건</span></p>
+              </div>
             </div>
           </div>
 
@@ -466,14 +522,54 @@ export default function DashboardPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F1F5F9] text-gray-600">
               <tr>
-                <th className="py-4 px-6 font-medium">상태 (매칭도)</th>
-                <th className="py-4 px-6 font-medium">기업명</th>
-                <th className="py-4 px-6 font-medium">사업자등록번호</th>
-                <th className="py-4 px-6 font-medium">지원사업명</th>
-                <th className="py-4 px-6 font-medium">지원과제명</th>
-                <th className="py-4 px-6 font-medium">소재지</th>
-                <th className="py-4 px-6 font-medium">지원분야</th>
-                <th className="py-4 px-6 font-medium text-right">과거 누적 지원금액</th>
+                <th className="py-4 px-6 font-medium text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    상태 (매칭도)
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-left">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    기업명
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-left">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    사업자등록번호
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-left">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                    지원사업명
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-left">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    지원과제명
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-center">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    소재지
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-left">
+                  <div className="flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                    지원분야
+                  </div>
+                </th>
+                <th className="py-4 px-6 font-medium text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    과거 누적 지원금액
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -496,10 +592,8 @@ export default function DashboardPage() {
                 } else if (company.matchStatus === "FUZZY") {
                   if (company.isDuplicateSuspect) {
                     badgeClass = "bg-[var(--color-status-red)] text-white";
-                    badgeText = `중복의심 (${company.matchScore}%)`;
                   } else {
                     badgeClass = "bg-[var(--color-status-orange)] text-white";
-                    badgeText = `확인 필요 (${company.matchScore}%)`;
                   }
                 } else {
                   badgeClass = "bg-[var(--color-status-green)] text-white";
@@ -517,7 +611,9 @@ export default function DashboardPage() {
                     <td className="py-4 px-6">
                       <div className="flex flex-col sm:flex-row gap-1.5 sm:items-center">
                         <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>
-                          {badgeText}
+                          {company.matchStatus === "FUZZY" ? (
+                            <>{company.isDuplicateSuspect ? "중복의심" : "확인 필요"} (<span className="font-mono">{company.matchScore}%</span>)</>
+                          ) : badgeText}
                         </span>
                         {company.isDuplicateSuspect && (
                           <span className="inline-block px-2.5 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold border border-red-200 animate-pulse">
@@ -526,16 +622,20 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </td>
-                    <td className="py-4 px-6 font-medium text-gray-900">{company.companyName}</td>
-                    <td className="py-4 px-6 font-mono text-gray-600">
+                    <td className="py-4 px-6 text-left font-medium text-gray-900">{company.companyName}</td>
+                    <td className="py-4 px-6 text-left font-mono text-gray-600">
                       <BusinessNumber value={company.businessNumber} />
                     </td>
-                    <td className="py-4 px-6 text-gray-500 max-w-[180px] truncate">{company.appliedProgramName || "-"}</td>
-                    <td className="py-4 px-6 text-gray-500 max-w-[180px] truncate">{company.appliedProjectName || "-"}</td>
-                    <td className="py-4 px-6 text-gray-500">{extractSiGun(company.location)}</td>
-                    <td className="py-4 px-6 text-gray-500">{company.supportField}</td>
-                    <td className={`py-4 px-6 text-right font-medium ${hasValidHistory ? "text-[var(--color-gbsa-primary)] underline decoration-blue-200 group-hover:decoration-blue-400" : "text-gray-400"}`}>
-                      {hasValidHistory ? `${validTotal.toLocaleString()}원` : "-"}
+                    <td className="py-4 px-6 text-left text-gray-500 max-w-[180px] truncate">{company.appliedProgramName || "-"}</td>
+                    <td className="py-4 px-6 text-left text-gray-500 max-w-[180px] truncate">{company.appliedProjectName || "-"}</td>
+                    <td className="py-4 px-6 text-center text-gray-500">{extractSiGun(company.location)}</td>
+                    <td className="py-4 px-6 text-left text-gray-500">{company.supportField}</td>
+                    <td className="py-4 px-6 text-right">
+                      {hasValidHistory ? (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-sm font-bold">
+                          <span className="font-mono">{validTotal.toLocaleString()}</span><span className="font-sans ml-0.5">원</span>
+                        </span>
+                      ) : "-"}
                     </td>
                   </tr>
                 );

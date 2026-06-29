@@ -83,28 +83,28 @@ export default function HistoryModal({
         
         {/* Header */}
         <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg text-[var(--color-gbsa-primary)] flex items-center justify-center">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 bg-blue-50 rounded-xl text-[var(--color-gbsa-primary)] flex items-center justify-center shrink-0">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-xl font-bold text-[var(--color-gbsa-primary)] leading-tight">중복 지원 상세 비교</h2>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold inline-block w-fit ${statusBadgeColor}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${statusBadgeColor}`}>
                   {statusLabel}
                 </span>
                 {company.isDuplicateSuspect && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white animate-pulse inline-block w-fit">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-600 text-white animate-pulse">
                     ⚠️ 중복 수혜 의심
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">신규 지원 신청 건과 내부 DB 데이터를 교차 대조하여 검토합니다.</p>
+              <p className="text-xs text-gray-400 mt-0.5 font-medium">신규 지원 신청 건과 내부 DB 데이터를 교차 대조하여 검토합니다.</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors shrink-0 ml-4">
             <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -219,7 +219,7 @@ export default function HistoryModal({
                   <div className="text-sm font-medium text-gray-900 p-2.5 bg-white rounded-lg border border-transparent">
                     {company.dbCompanyName || company.companyName || "-"}
                     {company.matchStatus === "FUZZY" && (
-                      <span className="ml-2 text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 font-semibold">
+                      <span className="ml-2 text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 font-semibold font-mono">
                         유사도 {company.matchScore}%
                       </span>
                     )}
@@ -258,7 +258,7 @@ export default function HistoryModal({
                   </label>
                   <div className="text-sm p-2.5 bg-white rounded-lg border border-transparent text-gray-800">
                     {company.histories.length > 0 ? (
-                      `${company.histories[0].year}년 ${company.histories[0].programName}`
+                      <><span className="font-mono">{company.histories[0].year}</span>년 {company.histories[0].programName}</>
                     ) : (
                       <span className="text-gray-400 font-normal">이력 없음</span>
                     )}
@@ -298,8 +298,8 @@ export default function HistoryModal({
           <section className="space-y-4">
             <div className="flex items-center justify-between border-b pb-2">
               <h3 className="text-lg font-bold text-gray-800">과거 지원 이력</h3>
-              <div className="text-sm font-medium text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border">
-                총 유효 누적 지원 금액: <span className="text-lg font-bold text-[var(--color-gbsa-primary)] ml-1">{validTotalAmount.toLocaleString()}원</span>
+              <div className="text-sm font-medium text-gray-700">
+                총 유효 누적 지원 금액: <span className="inline-flex items-center ml-2 px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-lg font-bold"><span className="font-mono">{validTotalAmount.toLocaleString()}</span><span className="font-sans ml-0.5">원</span></span>
               </div>
             </div>
 
@@ -312,11 +312,36 @@ export default function HistoryModal({
                 <table className="w-full text-left text-sm">
                   <thead className="bg-[#F1F5F9] text-gray-600 border-b border-gray-200">
                     <tr>
-                      <th className="py-3 px-4 font-semibold">년도</th>
-                      <th className="py-3 px-4 font-semibold">지원 사업명</th>
-                      <th className="py-3 px-4 font-semibold text-center w-24">상태</th>
-                      <th className="py-3 px-4 font-semibold text-right">선정 금액</th>
-                      <th className="py-3 px-4 font-semibold text-right">지원 금액</th>
+                      <th className="py-3 px-4 font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          년도
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          지원 사업명
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold text-center w-24">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          상태
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          선정 금액
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                          지원 금액
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 bg-white">

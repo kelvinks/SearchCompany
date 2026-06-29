@@ -262,7 +262,7 @@ export default function HistoryPage() {
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
       {/* Header */}
       <div className="flex justify-end items-center">
-        <span className="text-sm text-gray-400 font-medium">총 {filteredItems.length}건</span>
+        <span className="text-sm text-gray-400 font-medium">총 <span className="font-mono">{filteredItems.length}</span>건</span>
       </div>
 
       {/* Search Bar */}
@@ -322,7 +322,7 @@ export default function HistoryPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 truncate">
+                  <h3 className={`text-lg font-bold text-gray-900 truncate ${/^[0-9\-\s]+$/.test(item.title) ? 'font-mono' : ''}`}>
                     {/^[0-9\-\s]+$/.test(item.title) ? <BusinessNumber value={item.title} /> : item.title}
                   </h3>
                   {item.brn && (

@@ -10,12 +10,14 @@
   --color-status-orange: #DD6B20;
   --color-status-green: #38A169;
   --color-status-gray: #A0AEC0;
+  --font-sans: "Iosevka Charon", "Gowun Dodum", sans-serif;
+  --font-mono: "Iosevka Charon", monospace;
 }
 
 body {
   background-color: var(--color-gbsa-bg);
   color: var(--color-gbsa-text);
-  font-family: "Pretendard", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Iosevka Charon", "Gowun Dodum", sans-serif;
 }
 
 .no-scroll {

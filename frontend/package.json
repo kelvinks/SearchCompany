@@ -10,12 +10,24 @@
     "seed": "npx ts-node scripts/seedCompanies.ts"
   },
   "dependencies": {
+    "@fontsource-variable/asta-sans": "^5.2.4",
+    "@fontsource-variable/chiron-goround-tc": "^5.2.5",
+    "@fontsource-variable/noto-sans-kr": "^5.2.10",
+    "@fontsource/dongle": "^5.2.7",
+    "@fontsource/gothic-a1": "^5.2.8",
+    "@fontsource/gowun-dodum": "^5.2.8",
+    "@fontsource/iosevka-charon": "^5.2.1",
+    "@fontsource/nanum-gothic": "^5.2.7",
+    "@fontsource/nanum-gothic-coding": "^5.2.8",
     "@supabase/supabase-js": "^2.108.2",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "fuse.js": "^7.4.2",
     "next": "16.2.9",
     "pg": "^8.22.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

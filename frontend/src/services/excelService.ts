@@ -1,72 +1,143 @@
 import ExcelJS from "exceljs";
+import * as XLSX from "xlsx";
 import { Company } from "@/data/mockData";
+import { supabase } from "./supabaseClient";
 
-type ExcelRowData = Record<string, string | number | boolean | null | undefined | object>;
-
-interface CellObject {
-  text?: string;
-  result?: string | number;
-  value?: string | number;
-}
+export type ExcelUploadData = {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  fileUrl?: string;
+  sheetName: string;
+  totalRows: number;
+  parsedData: Record<string, any>[];
+  columnHeaders: string[];
+  createdAt: string;
+};
 
 export const excelService = {
   /**
-   * Parses an uploaded Excel file on the client side and extracts company details.
-   * Expects standard columns: 기업명(or 업체명), 사업자등록번호(or 사업자번호), 대표자, 소재지, 지원분야, 지원사업명, 지원과제명.
+   * Extracts password from filename if it ends with _PWXXXX or _XXXX pattern.
+   * e.g., "file_PW1203.xlsx" → "1203", "file_2093.xlsx" → "2093"
    */
-  async parseUploadFile(file: File): Promise<Partial<Company>[]> {
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(arrayBuffer);
+  extractPasswordFromFileName(fileName: string): string | undefined {
+    // Match _PWXXXX.xlsx pattern first
+    const pwMatch = fileName.match(/_PW(\d{4,})\.(xlsx|xls)$/i);
+    if (pwMatch) return pwMatch[1];
+    
+    // Match _XXXX.xlsx pattern (4+ digits at end before extension)
+    const numMatch = fileName.match(/_(\d{4,})\.(xlsx|xls)$/i);
+    if (numMatch) return numMatch[1];
+    
+    return undefined;
+  },
 
-    const worksheet = workbook.worksheets[0];
-    const parsedData: ExcelRowData[] = [];
-    let headers: string[] = [];
+  /**
+   * Removes password suffix from filename for display.
+   * e.g., "file_PW1203.xlsx" → "file.xlsx"
+   */
+  cleanFileName(fileName: string): string {
+    return fileName.replace(/_PW\d+(\.(xlsx|xls))$/i, "$1");
+  },
+  /**
+   * Parses an uploaded Excel file on the client side and extracts company details.
+   * For encrypted files, calls server-side API to decrypt first.
+   */
+  async parseUploadFile(file: File, password?: string): Promise<Partial<Company>[]> {
+    console.log(`[ExcelService] parseUploadFile start: ${file.name} (${file.size} bytes), password=${password ? "****" : "none"}`);
 
-    worksheet.eachRow((row, rowNumber) => {
-      // First row contains the column names
-      if (rowNumber === 1) {
-        headers = (row.values as ExcelJS.CellValue[]).map((v) => (v ? String(v).trim() : ""));
-      } else {
-        const rowValues = row.values as ExcelJS.CellValue[];
-        const item: ExcelRowData = {};
-        // Note: exceljs rows have 1-based indexing for rowValues, rowValues[0] is empty/unused
-        headers.forEach((header, index) => {
-          if (header && index < rowValues.length) {
-            item[header] = rowValues[index] as ExcelRowData[string]; // Cast cell value safely
-          }
-        });
-        parsedData.push(item);
+    let arrayBuffer: ArrayBuffer;
+
+    // Try client-side parsing first (works for non-encrypted files)
+    try {
+      arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      console.log(`[ExcelService] Client-side parse succeeded, sheets: ${workbook.SheetNames}`);
+      return this.parseWorkbook(workbook);
+    } catch (err: any) {
+      const errMsg = err?.message || String(err);
+      console.warn(`[ExcelService] Client-side parse failed: ${errMsg}`);
+      // Broaden encryption detection keywords
+      const isEncryptRelated = /password|encrypt|decrypt|암호| Protected|ole|cfb/i.test(errMsg);
+      if (!password || !isEncryptRelated) {
+        console.error(`[ExcelService] Throwing non-password error:`, err);
+        throw err;
       }
-    });
+      console.log(`[ExcelService] File appears encrypted, trying server-side decryption...`);
+    }
 
-    // Map parsed keys to standard Company properties
-    return parsedData.map((d, index) => {
+    // File is encrypted - try server-side decryption via Python API
+    try {
+      // Convert file to base64
+      const buf = await file.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), "")
+      );
+      console.log(`[ExcelService] Calling /api/py-decrypt, base64 length: ${base64.length}`);
+
+      const response = await fetch("/api/py-decrypt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file: base64, password }),
+      });
+
+      console.log(`[ExcelService] API response status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error(`[ExcelService] API error response:`, errorData);
+        throw new Error(errorData.error || `서버 응답 오류 (${response.status})`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || "비밀번호 해제 실패");
+      }
+
+      // Decode base64 to buffer
+      const binaryString = atob(result.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      console.log(`[ExcelService] Decrypted buffer size: ${bytes.length} bytes`);
+      const workbook = XLSX.read(bytes.buffer, { type: "array" });
+      console.log(`[ExcelService] Decrypted workbook parsed, sheets: ${workbook.SheetNames}`);
+      return this.parseWorkbook(workbook);
+    } catch (err: any) {
+      console.error("[ExcelService] Server decrypt failed:", err);
+      throw new Error(`암호화된 파일 처리 실패: ${err.message}`);
+    }
+  },
+
+  /**
+   * Parses a workbook and extracts company details.
+   */
+  parseWorkbook(workbook: XLSX.WorkBook): Partial<Company>[] {
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+
+    return jsonData.map((d, index) => {
       const companyName = d["기업명"] || d["업체명"] || d["회사명"] || d["상호"] || "";
-      const businessNumber = d["사업자등록번호"] || d["사업자번호"] || d["등록번호"] || "";
+      const businessNumber = String(d["사업자등록번호"] || d["사업자번호"] || d["등록번호"] || "");
       const location = d["소재지"] || d["주소"] || d["위치"] || "";
       const supportField = d["지원분야"] || d["신청분야"] || d["사업분야"] || "";
       const appliedProgramName = d["지원사업명"] || d["사업명"] || d["지원사업"] || "";
       const appliedProjectName = d["지원과제명"] || d["과제명"] || d["지원과제"] || "";
 
-      // Extract string value from Cell Object if necessary (exceljs sometimes wraps values in objects)
       const cleanStr = (val: unknown): string => {
         if (!val) return "";
-        if (typeof val === "object") {
-          const obj = val as CellObject;
-          return obj.text || String(obj.result ?? "") || JSON.stringify(val);
-        }
         return String(val).trim();
       };
 
       return {
-        id: `upl-${Date.now()}-${index}`,
+        id: `upload-${Date.now()}-${index}`,
         companyName: cleanStr(companyName),
-        businessNumber: cleanStr(businessNumber),
+        businessNumber: cleanStr(businessNumber).replace(/[^0-9]/g, ""),
         location: cleanStr(location),
-        mainProducts: "", // Not used anymore as per user request
         supportField: cleanStr(supportField),
-        requestedAmount: 0, // Not used anymore as per user request
         appliedProgramName: cleanStr(appliedProgramName),
         appliedProjectName: cleanStr(appliedProjectName),
       };
@@ -181,5 +252,103 @@ export const excelService = {
     return new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
+  },
+
+  /**
+   * Parses Excel file and returns raw data with column headers for storage.
+   * For encrypted files, calls server-side API to decrypt first.
+   */
+  async parseRawData(file: File, password?: string): Promise<{ headers: string[]; data: Record<string, any>[]; sheetName: string }> {
+    console.log(`[ExcelService] parseRawData start: ${file.name}`);
+
+    let arrayBuffer: ArrayBuffer;
+
+    // Try client-side parsing first
+    try {
+      arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: "array" });
+      console.log(`[ExcelService] parseRawData client-side parse succeeded`);
+      return this.parseRawWorkbook(workbook);
+    } catch (err: any) {
+      const errMsg = err?.message || String(err);
+      console.warn(`[ExcelService] parseRawData client-side parse failed: ${errMsg}`);
+      const isEncryptRelated = /password|encrypt|decrypt|암호| Protected|ole|cfb/i.test(errMsg);
+      if (!password || !isEncryptRelated) {
+        throw err;
+      }
+      console.log(`[ExcelService] parseRawData file appears encrypted, trying server-side...`);
+    }
+
+    // File is encrypted - try server-side decryption via Python API
+    const buf = await file.arrayBuffer();
+    const base64 = btoa(
+      new Uint8Array(buf).reduce((data, byte) => data + String.fromCharCode(byte), "")
+    );
+
+    console.log(`[ExcelService] parseRawData calling /api/py-decrypt`);
+
+    const response = await fetch("/api/py-decrypt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: base64, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `서버 응답 오류 (${response.status})`);
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || "비밀번호 해제 실패");
+    }
+
+    const binaryString = atob(result.data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    console.log(`[ExcelService] parseRawData decrypted buffer size: ${bytes.length}`);
+    const workbook = XLSX.read(bytes.buffer, { type: "array" });
+    return this.parseRawWorkbook(workbook);
+  },
+
+  /**
+   * Parses a workbook and returns raw data with column headers.
+   */
+  parseRawWorkbook(workbook: XLSX.WorkBook): { headers: string[]; data: Record<string, any>[]; sheetName: string } {
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet);
+    const headers = jsonData.length > 0 ? Object.keys(jsonData[0]) : [];
+
+    return { headers, data: jsonData, sheetName };
+  },
+
+  /**
+   * Uploads file to Supabase Storage and returns public URL.
+   */
+  async uploadFileToStorage(file: File): Promise<string | null> {
+    if (!supabase) return null;
+    
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `excel-uploads/${fileName}`;
+    
+    const { error } = await supabase.storage
+      .from("excel-files")
+      .upload(filePath, file);
+    
+    if (error) {
+      console.error("Storage upload error:", error);
+      return null;
+    }
+    
+    const { data } = supabase.storage
+      .from("excel-files")
+      .getPublicUrl(filePath);
+    
+    return data?.publicUrl || null;
   },
 };

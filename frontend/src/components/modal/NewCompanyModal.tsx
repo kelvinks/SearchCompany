@@ -97,7 +97,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity p-4 pt-20">
       <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
@@ -167,7 +167,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                     onChange={(e) => setBusinessNumber(e.target.value)} 
                     required 
                     placeholder="예: 123-45-67890" 
-                    className={`w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                    className={`w-full pl-10 pr-4 py-2.5 text-sm font-mono rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
                       businessNumber && businessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
                     }`}
                   />

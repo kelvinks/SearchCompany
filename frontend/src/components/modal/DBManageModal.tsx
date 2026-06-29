@@ -207,6 +207,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
     }
     
     // Reset form
+    setYear(new Date().getFullYear().toString());
     setProgramName("");
     setProjectName("");
     setSelectedAmount("");
@@ -408,9 +409,17 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
 
 
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-800">등록된 지원 이력</h3>
-            <div className="text-sm bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
-              유효 총 지원금액: <span className="text-lg font-bold text-[var(--color-gbsa-primary)] ml-1">{validTotalAmount.toLocaleString()}원</span>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold text-gray-800">등록된 지원 이력</h3>
+              {!isAdding && (
+                <button onClick={() => setIsAdding(true)} className="text-xs bg-[var(--color-gbsa-primary)] text-white px-3 py-1.5 rounded-lg font-medium hover:bg-[var(--color-gbsa-secondary)] transition-colors flex items-center gap-1 shadow-sm">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  신규 이력
+                </button>
+              )}
+            </div>
+            <div className="text-sm text-gray-700">
+              유효 총 지원금액: <span className="inline-flex items-center ml-2 px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-lg font-bold"><span className="font-mono">{validTotalAmount.toLocaleString()}</span><span className="font-sans ml-0.5">원</span></span>
             </div>
           </div>
 
@@ -418,16 +427,131 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
             <table className="w-full text-left text-sm">
               <thead className="bg-[#F1F5F9] text-gray-600 border-b border-gray-200">
                 <tr>
-                  <th className="py-3 px-4 font-semibold">년도</th>
-                  <th className="py-3 px-4 font-semibold">지원 사업명</th>
-                  <th className="py-3 px-4 font-semibold text-center w-24">상태</th>
-                  <th className="py-3 px-4 font-semibold text-right">선정 금액</th>
-                  <th className="py-3 px-4 font-semibold text-right">지원 금액</th>
-                  <th className="py-3 px-4 font-semibold text-center w-16">수정</th>
-                  <th className="py-3 px-4 font-semibold text-center w-16">삭제</th>
+                  <th className="py-3 px-4 font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                      년도
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      지원 사업명
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 font-semibold text-center w-24">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      상태
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      선정 금액
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 font-semibold text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      지원 금액
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 font-semibold text-center w-16">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      수정
+                    </div>
+                  </th>
+                  <th className="py-3 px-4 font-semibold text-center w-16">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      삭제
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
+                {isAdding && (
+                  <tr className="bg-green-50/20 border-y border-green-100">
+                    <td></td>
+                    <td colSpan={6} className="p-4 pl-0">
+                      <form onSubmit={(e) => { e.preventDefault(); handleAddSubmit(e); }} className="space-y-4 w-full bg-white p-5 rounded-xl border border-green-200 shadow-sm animate-fade-in text-left">
+                        <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></span>
+                            <h5 className="text-xs font-bold text-gray-800">신규 이력 등록</h5>
+                          </div>
+                          <button type="button" onClick={() => { setIsAdding(false); setProgramName(""); setProjectName(""); setSelectedAmount(""); setSupportAmount(""); setNotes(""); }} className="text-xs text-gray-400 hover:text-gray-600">닫기 ✕</button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-24 gap-4">
+                          <div className="col-span-1 md:col-span-2">
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              년도
+                            </label>
+                            <input type="text" value={year} onChange={(e) => setYear(e.target.value)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white" />
+                          </div>
+                          <div className="col-span-1 md:col-span-7">
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                              지원사업명
+                            </label>
+                            <input type="text" value={programName} onChange={(e) => setProgramName(e.target.value)} required placeholder="예: 2024 창업도약패키지" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white" />
+                          </div>
+                          <div className="col-span-1 md:col-span-7">
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                              지원과제명
+                            </label>
+                            <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="미지정 시 비워둠" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white" />
+                          </div>
+                          <div className="col-span-1 md:col-span-2">
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              상태
+                            </label>
+                            <select value={status} onChange={(e) => setStatus(e.target.value as "선정" | "완료" | "포기" | "제외")} className="w-full h-[38px] px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white">
+                              <option value="선정">선정</option>
+                              <option value="완료">완료</option>
+                              <option value="포기">포기</option>
+                              <option value="제외">제외</option>
+                            </select>
+                          </div>
+                          <div className="col-span-1 md:col-span-3">
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              선정금액(원)
+                            </label>
+                            <input type="text" value={formatNumberWithCommas(selectedAmount)} onChange={handleAmountChange(setSelectedAmount)} required placeholder="0" className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
+                          </div>
+                          <div className="col-span-1 md:col-span-3">
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                              지원금액(원)
+                            </label>
+                            <input type="text" value={formatNumberWithCommas(supportAmount)} onChange={handleAmountChange(setSupportAmount)} required placeholder="0" className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-24 gap-4 items-end">
+                          <div className="col-span-1 md:col-span-18">
+                            <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                              비고
+                            </label>
+                            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="추가 메모 입력" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white" />
+                          </div>
+                          <div className="col-span-1 md:col-span-6 flex gap-2">
+                            <button type="button" onClick={() => { setIsAdding(false); setProgramName(""); setProjectName(""); setSelectedAmount(""); setSupportAmount(""); setNotes(""); }} className="w-full py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg border transition-colors">취소</button>
+                            <button type="submit" className="w-full py-2 text-sm bg-[var(--color-gbsa-primary)] hover:bg-blue-800 text-white font-semibold rounded-lg shadow-sm transition-colors">저장</button>
+                          </div>
+                        </div>
+                      </form>
+                    </td>
+                  </tr>
+                )}
                 {histories.length > 0 ? histories.map((history) => {
                   const isDisabled = history.status === "포기" || history.status === "제외";
                   const isEditing = editingId === history.id;
@@ -528,14 +652,14 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                                     <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     선정금액(원)
                                   </label>
-                                  <input type="text" value={formatNumberWithCommas(editSelectedAmount)} onChange={handleAmountChange(setEditSelectedAmount)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
+                                  <input type="text" value={formatNumberWithCommas(editSelectedAmount)} onChange={handleAmountChange(setEditSelectedAmount)} required className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
                                 </div>
                                 <div className="col-span-1 md:col-span-3">
                                   <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
                                     <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     지원금액(원)
                                   </label>
-                                  <input type="text" value={formatNumberWithCommas(editSupportAmount)} onChange={handleAmountChange(setEditSupportAmount)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
+                                  <input type="text" value={formatNumberWithCommas(editSupportAmount)} onChange={handleAmountChange(setEditSupportAmount)} required className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right bg-white" />
                                 </div>
                               </div>
                               
@@ -566,92 +690,12 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
               </tbody>
             </table>
           </div>
-
-
-          {/* Add New Entry Form */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mt-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-bold text-gray-800">신규 이력 추가</h4>
-              {!isAdding && (
-                <button onClick={() => setIsAdding(true)} className="text-sm bg-white border border-gray-200 px-3 py-1.5 rounded-lg font-medium hover:bg-gray-100 transition-colors">
-                  + 입력창 열기
-                </button>
-              )}
-            </div>
-
-            {isAdding && (
-              <form onSubmit={handleAddSubmit} className="grid grid-cols-24 gap-4 items-end">
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    년도
-                  </label>
-                  <input type="text" value={year} onChange={(e) => setYear(e.target.value)} required className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none" />
-                </div>
-                <div className="col-span-7">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                    지원사업명
-                  </label>
-                  <input type="text" value={programName} onChange={(e) => setProgramName(e.target.value)} required placeholder="예: 2024 창업도약패키지" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none" />
-                </div>
-                <div className="col-span-7">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                    지원과제명
-                  </label>
-                  <input type="text" value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="지원과제명 입력" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    상태
-                  </label>
-                  <select value={status} onChange={(e) => setStatus(e.target.value as "선정" | "완료" | "포기" | "제외")} className="w-full h-10 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white">
-                    <option value="선정">선정</option>
-                    <option value="완료">완료</option>
-                    <option value="포기">포기</option>
-                    <option value="제외">제외</option>
-                  </select>
-                </div>
-                <div className="col-span-3">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    선정금액(원)
-                  </label>
-                  <input type="text" value={formatNumberWithCommas(selectedAmount)} onChange={handleAmountChange(setSelectedAmount)} required placeholder="0" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right" />
-                </div>
-                <div className="col-span-3">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    지원금액(원)
-                  </label>
-                  <input type="text" value={formatNumberWithCommas(supportAmount)} onChange={handleAmountChange(setSupportAmount)} required placeholder="0" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none text-right" />
-                </div>
-                <div className="col-span-20">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5 ml-1 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    비고
-                  </label>
-                  <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="추가 메모 입력" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none" />
-                </div>
-                <div className="col-span-4 flex gap-2">
-                  <button type="button" onClick={() => setIsAdding(false)} className="w-full py-2 text-sm bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors">
-                    취소
-                  </button>
-                  <button type="submit" className="w-full py-2 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] transition-colors">
-                    저장
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
         </div>
       </div>
 
       {/* Custom Delete Warning Confirmation Modal Popup */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 pt-20 animate-fade-in">
           <div className="bg-white rounded-2xl border-2 border-red-500 max-w-md w-full p-6 shadow-2xl space-y-5 text-left transform scale-100 transition-all duration-300">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
@@ -674,7 +718,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                   기업 마스터 프로필 정보 (<span className="font-semibold text-gray-800">{company.companyName}</span>)
                 </li>
                 <li>
-                  등록된 과거 수혜/지원 이력 데이터 (<strong className="text-red-600">{histories.length}건</strong>)
+                  등록된 과거 수혜/지원 이력 데이터 (<strong className="text-red-600 font-mono">{histories.length}건</strong>)
                 </li>
                 <li>
                   해당 기업과 연관된 모든 중복 수혜 분석 및 검증 이력
@@ -708,7 +752,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
 
       {/* 2nd Double Confirmation Warning Modal Popup */}
       {showDeleteConfirmDouble && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[110] flex items-center justify-center p-4 pt-20 animate-fade-in">
           <div className="bg-white rounded-2xl border-4 border-red-600 max-w-sm w-full p-6 shadow-2xl space-y-6 text-center transform scale-100 transition-all duration-300">
             <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-red-600 mx-auto animate-pulse">
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">

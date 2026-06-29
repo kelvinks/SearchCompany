@@ -661,5 +661,115 @@ export const companyService = {
     }
 
     return [];
-  }
+  },
+
+  // ==================== Excel Uploads CRUD ====================
+  
+  async getExcelUploads(): Promise<any[]> {
+    if (!isSupabaseConfigured || !supabase) {
+      const stored = localStorage.getItem("gbsa_excel_uploads");
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    const { data, error } = await supabase
+      .from("excel_uploads")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching excel uploads:", error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  async getExcelUploadById(id: string): Promise<any | null> {
+    if (!isSupabaseConfigured || !supabase) {
+      const stored = localStorage.getItem("gbsa_excel_uploads");
+      const uploads = stored ? JSON.parse(stored) : [];
+      return uploads.find((u: any) => u.id === id) || null;
+    }
+
+    const { data, error } = await supabase
+      .from("excel_uploads")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching excel upload:", error);
+      return null;
+    }
+
+    return data;
+  },
+
+  async addExcelUpload(upload: {
+    fileName: string;
+    fileSize: number;
+    fileUrl?: string;
+    sheetName: string;
+    totalRows: number;
+    parsedData: Record<string, any>[];
+    columnHeaders: string[];
+    uploadNote?: string;
+  }): Promise<any | null> {
+    if (!isSupabaseConfigured || !supabase) {
+      const stored = localStorage.getItem("gbsa_excel_uploads");
+      const uploads = stored ? JSON.parse(stored) : [];
+      const newUpload = {
+        id: `excel-${Date.now()}`,
+        ...upload,
+        created_at: new Date().toISOString(),
+      };
+      uploads.unshift(newUpload);
+      localStorage.setItem("gbsa_excel_uploads", JSON.stringify(uploads));
+      return newUpload;
+    }
+
+    const { data, error } = await supabase
+      .from("excel_uploads")
+      .insert({
+        file_name: upload.fileName,
+        file_size: upload.fileSize,
+        file_url: upload.fileUrl || null,
+        sheet_name: upload.sheetName,
+        total_rows: upload.totalRows,
+        parsed_data: upload.parsedData,
+        column_headers: upload.columnHeaders,
+        upload_note: upload.uploadNote || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error adding excel upload:", error);
+      return null;
+    }
+
+    return data;
+  },
+
+  async deleteExcelUpload(id: string): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      const stored = localStorage.getItem("gbsa_excel_uploads");
+      const uploads = stored ? JSON.parse(stored) : [];
+      const filtered = uploads.filter((u: any) => u.id !== id);
+      localStorage.setItem("gbsa_excel_uploads", JSON.stringify(filtered));
+      return true;
+    }
+
+    const { error } = await supabase
+      .from("excel_uploads")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting excel upload:", error);
+      return false;
+    }
+
+    return true;
+  },
 };

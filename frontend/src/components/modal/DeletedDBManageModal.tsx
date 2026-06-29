@@ -71,7 +71,7 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-20 bg-black/50 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
@@ -120,12 +120,42 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
               <table className="w-full text-left text-xs">
                 <thead className="bg-gray-100 text-gray-600 border-b border-gray-200 font-medium">
                   <tr>
-                    <th className="py-3 px-4">연도</th>
-                    <th className="py-3 px-4">지원사업명</th>
-                    <th className="py-3 px-4">지원과제명</th>
-                    <th className="py-3 px-4">상태</th>
-                    <th className="py-3 px-4 text-right">선정금액</th>
-                    <th className="py-3 px-4 text-right">지원금액</th>
+                    <th className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        연도
+                      </div>
+                    </th>
+                    <th className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        지원사업명
+                      </div>
+                    </th>
+                    <th className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        지원과제명
+                      </div>
+                    </th>
+                    <th className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        상태
+                      </div>
+                    </th>
+                    <th className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        선정금액
+                      </div>
+                    </th>
+                    <th className="py-3 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        지원금액
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
@@ -144,10 +174,10 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
                             {history.status}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-semibold text-gray-600">
+                        <td className="py-3 px-4 text-right font-semibold font-mono text-gray-600">
                           {history.selectedAmount.toLocaleString()}원
                         </td>
-                        <td className="py-3 px-4 text-right font-bold text-[var(--color-gbsa-primary)]">
+                        <td className="py-3 px-4 text-right font-bold font-mono text-[var(--color-gbsa-primary)]">
                           {history.supportAmount.toLocaleString()}원
                         </td>
                       </tr>

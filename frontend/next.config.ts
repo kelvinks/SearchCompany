@@ -11,7 +11,6 @@ if (isGithubActions && process.env.GITHUB_REPOSITORY) {
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  output: "export",
   basePath: basePath,
   assetPrefix: basePath,
 };
