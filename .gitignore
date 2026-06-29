@@ -1,11 +1,3 @@
 node_modules/
 .DS_Store
 .env.local
-.vercel
-.env*
-.next/
-/out/
-/build
-next-env.d.ts
-*.tsbuildinfo
-*.pem
