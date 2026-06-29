@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     const rawExt = file.name.split(".").pop() || "xlsx";
     const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "xlsx";
-    const fileName = `excel-uploads/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const fileName = `request/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
     const blob = await put(fileName, file, {
       access: "public",
