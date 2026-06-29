@@ -10,6 +10,12 @@ export default function ExcelManagementPage() {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [reparsing, setReparsing] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editOrg, setEditOrg] = useState("");
+  const [editDoc, setEditDoc] = useState("");
+  const [editSendDate, setEditSendDate] = useState("");
+  const [editRequestDate, setEditRequestDate] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   useEffect(() => {
     loadData();
@@ -77,6 +83,36 @@ export default function ExcelManagementPage() {
     }
   };
 
+  const handleEditSave = async (upload: any) => {
+    const ok = await companyService.updateExcelUploadMeta(upload.id, {
+      orgName: editOrg,
+      docNum: editDoc,
+      sendDate: editSendDate || undefined,
+      requestDate: editRequestDate || undefined,
+      uploadNote: editDesc,
+    });
+    if (ok) {
+      setSelectedUpload((prev: any) =>
+        prev?.id === upload.id
+          ? { ...prev, org_name: editOrg, doc_num: editDoc, send_date: editSendDate || null, request_date: editRequestDate || null, upload_note: editDesc }
+          : prev
+      );
+      await loadData();
+      setEditingId(null);
+    } else {
+      alert("수정 실패");
+    }
+  };
+
+  const startEditing = (upload: any) => {
+    setEditOrg(upload.org_name || "");
+    setEditDoc(upload.doc_num || "");
+    setEditSendDate(upload.send_date || "");
+    setEditRequestDate(upload.request_date || "");
+    setEditDesc(upload.upload_note || "");
+    setEditingId(upload.id);
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString("ko-KR", {
@@ -127,8 +163,8 @@ export default function ExcelManagementPage() {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-gray-500 font-medium truncate">총 행 수</p>
-            <p className="text-lg font-bold text-gray-900 mt-0.5">{uploads.reduce((sum, u) => sum + (u.total_rows || 0), 0).toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">행</span></p>
+            <p className="text-xs text-gray-500 font-medium truncate">총 기업 수</p>
+            <p className="text-lg font-bold text-gray-900 mt-0.5">{uploads.reduce((sum, u) => sum + (u.total_rows || 0), 0).toLocaleString()}<span className="text-sm font-normal text-gray-500 ml-0.5">개사</span></p>
           </div>
         </div>
         
@@ -161,45 +197,88 @@ export default function ExcelManagementPage() {
               </div>
             ) : (
               uploads.map((upload) => (
-                <div
-                  key={upload.id}
-                  onClick={() => setSelectedUpload(upload)}
-                  className={`p-4 cursor-pointer transition-colors ${
-                    selectedUpload?.id === upload.id
-                      ? "bg-[var(--color-gbsa-primary)]/5 border-l-4 border-[var(--color-gbsa-primary)]"
-                      : "hover:bg-gray-50 border-l-4 border-transparent"
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800 truncate">{upload.file_name}</p>
-                      <p className="text-xs text-gray-500 mt-1">{formatDate(upload.created_at)}</p>
-                      {(upload.org_name || upload.doc_num) && (
-                        <p className="text-xs text-gray-400 mt-1 truncate">
-                          {upload.org_name && `요청: ${upload.org_name}`}{upload.org_name && upload.doc_num && " | "}{upload.doc_num && `문서: ${upload.doc_num}`}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                          {upload.total_rows || 0}행
-                        </span>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                          {formatFileSize(upload.file_size || 0)}
-                        </span>
+                <div key={upload.id}>
+                  <div
+                    onClick={() => setSelectedUpload(upload)}
+                    className={`p-4 cursor-pointer transition-colors ${
+                      selectedUpload?.id === upload.id
+                        ? "bg-[var(--color-gbsa-primary)]/5 border-l-4 border-[var(--color-gbsa-primary)]"
+                        : "hover:bg-gray-50 border-l-4 border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-800 truncate">{upload.file_name}</p>
+                        <p className="text-xs text-gray-500 mt-1">{formatDate(upload.created_at)}</p>
+                        {(upload.org_name || upload.doc_num) && (
+                          <p className="text-xs text-gray-400 mt-1 truncate">
+                            {upload.org_name && `요청: ${upload.org_name}`}{upload.org_name && upload.doc_num && " | "}{upload.doc_num && `문서: ${upload.doc_num}`}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                            {upload.total_rows || 0}개사
+                          </span>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                            {formatFileSize(upload.file_size || 0)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditing(upload);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-[var(--color-gbsa-primary)] hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm(upload.id);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirm(upload.id);
-                      }}
-                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
                   </div>
+                  {/* Inline Edit Form */}
+                  {editingId === upload.id && (
+                    <div className="px-4 py-4 bg-gray-50 border-b border-gray-100 space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-semibold text-gray-500">요청기관</label>
+                          <input type="text" value={editOrg} onChange={(e) => setEditOrg(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-[var(--color-gbsa-primary)]" placeholder="기관명" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-semibold text-gray-500">문서번호</label>
+                          <input type="text" value={editDoc} onChange={(e) => setEditDoc(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-[var(--color-gbsa-primary)]" placeholder="문서번호" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-semibold text-gray-500">접수일</label>
+                          <input type="date" value={editSendDate} onChange={(e) => setEditSendDate(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-[var(--color-gbsa-primary)]" />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-semibold text-gray-500">요청일</label>
+                          <input type="date" value={editRequestDate} onChange={(e) => setEditRequestDate(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-[var(--color-gbsa-primary)]" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs font-semibold text-gray-500">요청내용</label>
+                        <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white outline-none focus:border-[var(--color-gbsa-primary)] resize-none" rows={2} placeholder="요청 내용" />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-200 rounded-lg transition-colors font-medium">취소</button>
+                        <button onClick={() => handleEditSave(upload)} className="px-3 py-1.5 text-xs text-white bg-[var(--color-gbsa-primary)] hover:bg-[var(--color-gbsa-secondary)] rounded-lg transition-colors font-medium">저장</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
@@ -214,7 +293,7 @@ export default function ExcelManagementPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">{selectedUpload.file_name}</h3>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    시트: {selectedUpload.sheet_name} | 총 {selectedUpload.total_rows || 0}행
+                    시트: {selectedUpload.sheet_name} | 총 {selectedUpload.total_rows || 0}개사
                   </p>
                 </div>
                 {selectedUpload.file_url && (
@@ -287,7 +366,7 @@ export default function ExcelManagementPage() {
                 </table>
                 {(selectedUpload.parsed_data || []).length > 100 && (
                   <div className="p-4 text-center text-sm text-gray-500 bg-gray-50">
-                    최대 100행만 표시됩니다. (전체: {(selectedUpload.parsed_data || []).length}행)
+                    최대 100개사만 표시됩니다. (전체: {(selectedUpload.parsed_data || []).length}개사)
                   </div>
                 )}
               </div>

@@ -803,6 +803,50 @@ export const companyService = {
     return true;
   },
 
+  async updateExcelUploadMeta(
+    id: string,
+    meta: {
+      orgName?: string;
+      docNum?: string;
+      sendDate?: string;
+      requestDate?: string;
+      uploadNote?: string;
+    }
+  ): Promise<boolean> {
+    if (!isSupabaseConfigured || !supabase) {
+      const stored = localStorage.getItem("gbsa_excel_uploads");
+      const uploads = stored ? JSON.parse(stored) : [];
+      const idx = uploads.findIndex((u: any) => u.id === id);
+      if (idx >= 0) {
+        if (meta.orgName !== undefined) uploads[idx].org_name = meta.orgName;
+        if (meta.docNum !== undefined) uploads[idx].doc_num = meta.docNum;
+        if (meta.sendDate !== undefined) uploads[idx].send_date = meta.sendDate;
+        if (meta.requestDate !== undefined) uploads[idx].request_date = meta.requestDate;
+        if (meta.uploadNote !== undefined) uploads[idx].upload_note = meta.uploadNote;
+        localStorage.setItem("gbsa_excel_uploads", JSON.stringify(uploads));
+      }
+      return true;
+    }
+
+    const { error } = await supabase
+      .from("excel_uploads")
+      .update({
+        org_name: meta.orgName ?? undefined,
+        doc_num: meta.docNum ?? undefined,
+        send_date: meta.sendDate ?? undefined,
+        request_date: meta.requestDate ?? undefined,
+        upload_note: meta.uploadNote ?? undefined,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating excel upload meta:", error);
+      return false;
+    }
+
+    return true;
+  },
+
   async deleteExcelUpload(id: string): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) {
       const stored = localStorage.getItem("gbsa_excel_uploads");
