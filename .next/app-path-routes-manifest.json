@@ -1,0 +1,13 @@
+{
+  "/(dashboard)/database/page": "/database",
+  "/(dashboard)/excel-management/page": "/excel-management",
+  "/(dashboard)/font-test/page": "/font-test",
+  "/(dashboard)/history/page": "/history",
+  "/(dashboard)/page": "/",
+  "/(dashboard)/verification-results/page": "/verification-results",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/blob-upload/route": "/api/blob-upload",
+  "/favicon.ico/route": "/favicon.ico",
+  "/login/page": "/login"
+}

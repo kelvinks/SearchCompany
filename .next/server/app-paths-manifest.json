@@ -1,0 +1,13 @@
+{
+  "/(dashboard)/database/page": "app/(dashboard)/database/page.js",
+  "/(dashboard)/excel-management/page": "app/(dashboard)/excel-management/page.js",
+  "/(dashboard)/font-test/page": "app/(dashboard)/font-test/page.js",
+  "/(dashboard)/history/page": "app/(dashboard)/history/page.js",
+  "/(dashboard)/page": "app/(dashboard)/page.js",
+  "/(dashboard)/verification-results/page": "app/(dashboard)/verification-results/page.js",
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/blob-upload/route": "app/api/blob-upload/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/login/page": "app/login/page.js"
+}

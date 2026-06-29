@@ -1,0 +1,3 @@
+{
+  "/(dashboard)/excel-management/page": "app/(dashboard)/excel-management/page.js"
+}
