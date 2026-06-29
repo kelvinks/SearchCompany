@@ -180,14 +180,41 @@ export const excelService = {
     const programNameIdx = getColIndex("지원사업명", "사업명", "지원사업");
     const projectNameIdx = getColIndex("지원과제명", "과제명", "지원과제");
 
-    // Data rows after the header row
-    const dataRows = rows.slice(headerRowIdx + 1).filter(
-      (row) =>
-        row &&
-        row.some(
-          (c: any) => c !== undefined && c !== null && String(c).trim() !== ''
-        )
-    );
+    // Find "연번"/"순번"/"번호" column for filtering non-data rows
+    const seqNumIdx = getColIndex("연번", "순번", "번호");
+
+    // Data rows after the header row: filter out garbage and summary rows
+    const dataRows = rows.slice(headerRowIdx + 1).filter((row) => {
+      if (!row) return false;
+
+      // At least 2 meaningful company fields must be present
+      const filledFields = [
+        seqNumIdx >= 0 ? row[seqNumIdx] : undefined,
+        companyNameIdx >= 0 ? row[companyNameIdx] : undefined,
+        brnIdx >= 0 ? row[brnIdx] : undefined,
+        locationIdx >= 0 ? row[locationIdx] : undefined,
+      ].filter(
+        (v) => v !== undefined && v !== null && String(v).trim() !== ''
+      ).length;
+      if (filledFields < 2) return false;
+
+      // If "연번"/"순번"/"번호" has a value, it must be numeric
+      if (seqNumIdx >= 0) {
+        const seqVal = row[seqNumIdx];
+        if (
+          seqVal !== undefined &&
+          seqVal !== null &&
+          String(seqVal).trim() !== ''
+        ) {
+          const strVal = String(seqVal).trim();
+          if (isNaN(Number(strVal.replace(/,/g, '')))) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
 
     const cleanStr = (val: unknown): string => {
       if (!val) return "";
@@ -477,12 +504,46 @@ export const excelService = {
     const orgIdx = rawHeaders.findIndex((h) => h.startsWith('지원기관명'));
     if (orgIdx >= 0) endIdx = orgIdx;
 
-    // Data rows are those after the header row with at least one non-empty cell
-    const dataRows = rows.slice(headerRowIdx + 1).filter(
-      (row) =>
-        row &&
-        row.some((c: any) => c !== undefined && c !== null && String(c).trim() !== '')
+    // Find "연번"/"번호" column index for filtering non-data rows
+    const seqNumIdx = rawHeaders.findIndex(
+      (h) => h === '연번' || h === '순번' || h === '번호'
     );
+
+    // Filter data rows: must have content, 연번/번호 must be numeric, and at least 2 meaningful columns
+    const dataRows = rows.slice(headerRowIdx + 1).filter((row) => {
+      if (!row) return false;
+
+      // Count meaningful cells within the meaningful column range
+      let meaningfulCount = 0;
+      for (let j = startIdx; j < row.length && j < endIdx; j++) {
+        if (
+          row[j] !== undefined &&
+          row[j] !== null &&
+          String(row[j]).trim() !== ''
+        ) {
+          meaningfulCount++;
+        }
+      }
+      // Rows with fewer than 2 meaningful fields in the data range are garbage
+      if (meaningfulCount < 2) return false;
+
+      // If "연번"/"번호" column exists and has a value, it must be numeric
+      if (seqNumIdx >= 0) {
+        const seqVal = row[seqNumIdx];
+        if (
+          seqVal !== undefined &&
+          seqVal !== null &&
+          String(seqVal).trim() !== ''
+        ) {
+          const strVal = String(seqVal).trim();
+          if (isNaN(Number(strVal.replace(/,/g, '')))) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
 
     // Find the last column index (in raw space) that has actual data across ALL data rows
     const lastColWithData =
