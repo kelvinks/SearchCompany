@@ -330,25 +330,32 @@ export const excelService = {
    * Uploads file to Supabase Storage and returns public URL.
    */
   async uploadFileToStorage(file: File): Promise<string | null> {
-    if (!supabase) return null;
-    
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `excel-uploads/${fileName}`;
-    
-    const { error } = await supabase.storage
-      .from("search_excel")
-      .upload(filePath, file);
-    
-    if (error) {
-      console.error("Storage upload error:", error);
+    if (!supabase) {
+      console.warn("[Storage] Supabase not configured");
       return null;
     }
     
-    const { data } = supabase.storage
+    const rawExt = file.name.split(".").pop() || "xlsx";
+    const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() || "xlsx";
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = `excel-uploads/${fileName}`;
+    
+    console.log(`[Storage] Uploading: ${filePath} (${file.size} bytes)`);
+    
+    const { data, error } = await supabase.storage
+      .from("search_excel")
+      .upload(filePath, file, { contentType: "application/octet-stream" });
+    
+    if (error) {
+      console.error(`[Storage] Upload FAILED:`, error.message, error);
+      return null;
+    }
+    
+    console.log(`[Storage] Upload OK:`, data?.path);
+    const { data: urlData } = supabase.storage
       .from("search_excel")
       .getPublicUrl(filePath);
     
-    return data?.publicUrl || null;
+    return urlData?.publicUrl || null;
   },
 };
