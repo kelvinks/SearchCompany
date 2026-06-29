@@ -43,7 +43,7 @@ export default function Sidebar() {
 
   const navItems = [
     {
-      name: "통합 검색",
+      name: "통합검색",
       href: "/",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
