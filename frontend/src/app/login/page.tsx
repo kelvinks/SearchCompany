@@ -52,7 +52,7 @@ export default function LoginPage() {
 
   return (
     <FontProvider>
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-900">
+    <div suppressHydrationWarning className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-900">
       {/* Background Video */}
       <video
         autoPlay
