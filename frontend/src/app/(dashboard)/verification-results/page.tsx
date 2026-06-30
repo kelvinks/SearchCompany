@@ -188,7 +188,7 @@ export default function VerificationResultsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-[#F1F5F9] text-gray-600">
               <tr>
-                <th className="py-4 px-6 font-medium text-center w-20">
+                <th className="py-4 px-6 font-medium text-center w-28">
                   <div className="flex items-center justify-center gap-1.5">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
                     번호
@@ -233,7 +233,7 @@ export default function VerificationResultsPage() {
                 <th className="py-4 px-6 font-medium text-right">
                   <div className="flex items-center justify-end gap-1.5">
                     <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    과거 누적 지원금액
+                    지원금 총합
                   </div>
                 </th>
               </tr>
@@ -269,7 +269,7 @@ export default function VerificationResultsPage() {
                     </td>
                     <td className="py-4 px-6 text-right">
                       {validTotal > 0 ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[var(--color-gbsa-primary)] text-white text-xs font-bold">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-sm font-bold">
                           <span className="font-mono">{validTotal.toLocaleString()}</span><span className="font-sans ml-0.5">원</span>
                         </span>
                       ) : (
