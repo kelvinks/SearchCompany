@@ -199,7 +199,7 @@ export default function ExcelManagementPage() {
               uploads.map((upload) => (
                 <div key={upload.id}>
                   <div
-                    onClick={() => setSelectedUpload(upload)}
+                    onClick={() => { setSelectedUpload(upload); setEditingId(null); }}
                     className={`p-4 cursor-pointer transition-colors ${
                       selectedUpload?.id === upload.id
                         ? "bg-[var(--color-gbsa-primary)]/5 border-l-4 border-[var(--color-gbsa-primary)]"
