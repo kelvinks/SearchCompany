@@ -366,12 +366,46 @@ export default function DatabasePage() {
             setSaving(true);
             try {
               if (Array.isArray(newCompanyOrCompanies)) {
-                await companyService.addCompanies(newCompanyOrCompanies);
+                const result = await companyService.addCompaniesWithValidation(newCompanyOrCompanies);
+
+                // Missing fields warning
+                if (result.skippedMissingFields.length > 0) {
+                  const msg = result.skippedMissingFields
+                    .map(s => `• ${s.companyName} (${s.businessNumber || '번호없음'}): ${s.missingFields.join(', ')} 누락`)
+                    .join('\n');
+                  alert(`필수 입력값이 누락된 항목이 있어 건너뜁니다.\n\n${msg}`);
+                }
+
+                // Duplicate handling
+                if (result.duplicates.length > 0) {
+                  const names = result.duplicates
+                    .map(d => `• ${d.input.companyName} (${d.input.businessNumber})`)
+                    .join('\n');
+                  const shouldUpdate = confirm(
+                    `다음 기업들은 이미 등록된 사업자번호입니다.\n\n${names}\n\n기존 데이터를 업데이트하시겠습니까?\n[확인] = 기존 정보 업데이트\n[취소] = 해당 건 건너뛰기`
+                  );
+
+                  if (shouldUpdate) {
+                    for (const dup of result.duplicates) {
+                      await companyService.updateCompany(dup.existing.id, {
+                        companyName: dup.input.companyName,
+                        businessNumber: dup.input.businessNumber,
+                        location: dup.input.location,
+                        supportField: dup.input.supportField,
+                        mainProducts: dup.input.mainProducts,
+                      });
+                    }
+                  }
+                }
               } else {
                 await companyService.addCompany(newCompanyOrCompanies);
               }
               await handleRefresh();
               setIsNewCompanyModalOpen(false);
+            } catch (err) {
+              console.error("등록 중 오류:", err);
+              alert("기업 등록 중 오류가 발생했습니다.\n중복된 사업자번호 또는 필수값 누락을 확인해주세요.");
+              throw err;
             } finally {
               setSaving(false);
             }

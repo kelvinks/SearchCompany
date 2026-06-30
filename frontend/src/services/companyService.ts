@@ -6,6 +6,28 @@ import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import { matchingService } from "./matchingService";
 import { normalizeBusinessNumber } from "@/utils/format";
 
+export type SkippedMissingField = {
+  companyName: string;
+  businessNumber: string;
+  missingFields: string[];
+};
+
+export type DuplicateEntry = {
+  input: Partial<Company>;
+  existing: Company;
+};
+
+export type BulkAddResult = {
+  added: Company[];
+  skippedMissingFields: SkippedMissingField[];
+  duplicates: DuplicateEntry[];
+};
+
+const REQUIRED_COMPANY_FIELDS = [
+  { key: "companyName" as const, label: "기업명" },
+  { key: "businessNumber" as const, label: "사업자등록번호" },
+];
+
 export type SearchLog = {
   id: string;
   type: "BATCH" | "MANUAL";
@@ -269,8 +291,12 @@ export const companyService = {
     if (isSupabaseConfigured && supabase) {
       const added: Company[] = [];
       for (const c of newCompanies) {
-        const res = await this.addCompany(c);
-        added.push(res);
+        try {
+          const res = await this.addCompany(c);
+          added.push(res);
+        } catch (err) {
+          console.warn(`[addCompanies] Skipping company "${c.companyName}":`, err);
+        }
       }
       return added;
     }
@@ -286,6 +312,94 @@ export const companyService = {
     const updated = [...added, ...companies];
     this.saveCompanies(updated);
     return added;
+  },
+
+  // Batch registration with validation & duplicate detection
+  async addCompaniesWithValidation(
+    newCompanies: Omit<Company, "id" | "matchStatus" | "matchScore">[]
+  ): Promise<BulkAddResult> {
+    const result: BulkAddResult = {
+      added: [],
+      skippedMissingFields: [],
+      duplicates: [],
+    };
+
+    // Step 1: validate required fields
+    const validCompanies: (Omit<Company, "id" | "matchStatus" | "matchScore">)[] = [];
+    for (const c of newCompanies) {
+      const missingFields = REQUIRED_COMPANY_FIELDS
+        .filter(f => !c[f.key] || String(c[f.key]).trim() === '')
+        .map(f => f.label);
+      if (missingFields.length > 0) {
+        result.skippedMissingFields.push({
+          companyName: c.companyName || '이름 없음',
+          businessNumber: c.businessNumber || '',
+          missingFields,
+        });
+      } else {
+        validCompanies.push(c);
+      }
+    }
+
+    // Step 2: check duplicates (by business number)
+    if (isSupabaseConfigured && supabase) {
+      const brns = [...new Set(validCompanies.map(c => normalizeBusinessNumber(c.businessNumber)))];
+      const { data: existingRows } = await supabase
+        .from("companies")
+        .select("*, histories:support_histories(*)")
+        .in("business_number", brns);
+
+      const existingMap = new Map(
+        (existingRows || []).map(r => [r.business_number, mapDbCompany(r)])
+      );
+
+      const toInsert: typeof validCompanies = [];
+      for (const c of validCompanies) {
+        const brn = normalizeBusinessNumber(c.businessNumber);
+        const existing = existingMap.get(brn);
+        if (existing) {
+          result.duplicates.push({ input: c, existing });
+        } else {
+          toInsert.push(c);
+        }
+      }
+
+      for (const c of toInsert) {
+        try {
+          const res = await this.addCompany(c);
+          result.added.push(res);
+        } catch (err) {
+          console.warn(`[addCompanies] Error adding "${c.companyName}":`, err);
+        }
+      }
+    } else {
+      const companies = await this.getCompanies();
+      const existingMap = new Map(
+        companies.map(c => [normalizeBusinessNumber(c.businessNumber), c])
+      );
+
+      const toCreate: Company[] = [];
+      for (const c of validCompanies) {
+        const brn = normalizeBusinessNumber(c.businessNumber);
+        const existing = existingMap.get(brn);
+        if (existing) {
+          result.duplicates.push({ input: c, existing });
+        } else {
+          toCreate.push({
+            ...c,
+            id: `c-bulk-${Date.now()}-${toCreate.length}`,
+            matchStatus: "NEW",
+            matchScore: 0,
+            histories: c.histories || [],
+          } as Company);
+        }
+      }
+      const updated = [...toCreate, ...companies];
+      this.saveCompanies(updated);
+      result.added = toCreate;
+    }
+
+    return result;
   },
 
   // Update company profile details

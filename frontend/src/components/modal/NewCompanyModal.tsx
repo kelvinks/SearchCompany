@@ -6,9 +6,17 @@ import { excelService } from "@/services/excelService";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { normalizeBusinessNumber, formatBusinessNumber } from "@/utils/format";
 
+interface ParsedCandidate {
+  companyName: string;
+  businessNumber: string;
+  location: string;
+  supportField: string;
+  mainProducts: string;
+}
+
 interface NewCompanyModalProps {
   onClose: () => void;
-  onAdd: (company: Company | Company[]) => void;
+  onAdd: (company: Company | Company[]) => Promise<void> | void;
 }
 
 export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps) {
@@ -39,10 +47,8 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
   const [location, setLocation] = useState("");
   const [supportField, setSupportField] = useState("");
   const [mainProducts, setMainProducts] = useState("");
-  // location will be derived from address (city or county)
   const extractLocation = (addr: string) => {
     const parts = addr.trim().split(/\s+/);
-    // Find the first part ending with 시 or 군
     const match = parts.find(p => /시$/.test(p) || /군$/.test(p));
     return match || "";
   };
@@ -58,6 +64,8 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
 
   // Bulk Registration State
   const [isUploading, setIsUploading] = useState(false);
+  const [bulkPreview, setBulkPreview] = useState<ParsedCandidate[] | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSingleSubmit = async (e: React.FormEvent) => {
@@ -65,20 +73,20 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
     if (!companyName || !businessNumber) return;
     setSaving(true);
     try {
-
-    const newCompany: Company = {
-      id: `c-${Date.now()}`,
-      companyName,
-      businessNumber: normalizeBusinessNumber(businessNumber),
-      location,
-      supportField,
-      mainProducts,
-      matchStatus: "NEW",
-      matchScore: 0,
-      histories: [],
-    };
-
-    onAdd(newCompany);
+      const newCompany: Company = {
+        id: `c-${Date.now()}`,
+        companyName,
+        businessNumber: normalizeBusinessNumber(businessNumber),
+        location,
+        supportField,
+        mainProducts,
+        matchStatus: "NEW",
+        matchScore: 0,
+        histories: [],
+      };
+      await onAdd(newCompany);
+    } catch (err) {
+      console.error("Single registration error:", err);
     } finally {
       setSaving(false);
     }
@@ -87,44 +95,59 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
   const handleBulkUpload = async (file: File) => {
     setIsUploading(true);
     try {
-      // Upload file to Vercel Blob under company/ folder
-      let fileUrl: string | null = null;
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("folder", "company");
-        const uploadRes = await fetch("/api/blob-upload", { method: "POST", body: formData });
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          fileUrl = uploadData.url;
-          console.log(`[CompanyUpload] File uploaded to Blob: ${fileUrl}`);
-        }
-      } catch (blobErr) {
-        console.warn("[CompanyUpload] Blob upload failed (continuing):", blobErr);
+      const parsedCandidates = await excelService.parseUploadFile(file);
+
+      if (parsedCandidates.length === 0) {
+        alert("파일에서 인식된 기업 데이터가 없습니다.\n컬럼명이 '기업명', '사업자등록번호', '소재지' 등으로 되어있는지 확인 후 다시 업로드해주세요.");
+        return;
       }
 
-      const parsedCandidates = await excelService.parseUploadFile(file);
-      // Map to full Company array (fill histories as empty initially)
-      const companiesToAdd = parsedCandidates.map((c) => ({
-        ...c,
-        matchStatus: "NEW" as const,
-        matchScore: 0,
-        histories: [],
-      })) as unknown as Company[];
-      
-      onAdd(companiesToAdd);
+      const previewList: ParsedCandidate[] = parsedCandidates.map((c) => ({
+        companyName: c.companyName || "",
+        businessNumber: c.businessNumber || "",
+        location: c.location || "",
+        supportField: c.supportField || "",
+        mainProducts: c.mainProducts || "",
+      }));
+      setBulkPreview(previewList);
     } catch (error) {
       console.error("Bulk upload parse error:", error);
-      alert("엑셀 파일 파싱 중 오류가 발생했습니다.");
+      alert("엑셀 파일 파싱 중 오류가 발생했습니다.\n파일이 손상되었거나 암호가 걸려있는지 확인해주세요.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
+  const handleBulkSubmit = async () => {
+    if (!bulkPreview || bulkPreview.length === 0) return;
+    setSubmitting(true);
+    try {
+      const companiesToAdd = bulkPreview.map((c) => ({
+        companyName: c.companyName,
+        businessNumber: normalizeBusinessNumber(c.businessNumber),
+        location: c.location,
+        supportField: c.supportField,
+        mainProducts: c.mainProducts,
+        matchStatus: "NEW" as const,
+        matchScore: 0,
+        histories: [],
+      })) as unknown as Company[];
+
+      await onAdd(companiesToAdd);
+      setBulkPreview(null);
+    } catch (error) {
+      console.error("Bulk submit error:", error);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isMissingRequired = (c: ParsedCandidate) => !c.companyName.trim() || !c.businessNumber.trim();
+
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity p-4 pt-20">
-      <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative">
+      <div className="bg-white w-full max-w-2xl shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative">
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
           <div className="flex items-center gap-3">
@@ -144,25 +167,27 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200">
-          <button 
-            className={`flex-1 py-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "SINGLE" ? "border-[var(--color-gbsa-primary)] text-[var(--color-gbsa-primary)] bg-blue-50/30" : "border-transparent text-gray-500 hover:bg-gray-50"}`}
-            onClick={() => setActiveTab("SINGLE")}
-          >
-            단건 등록
-          </button>
-          <button 
-            className={`flex-1 py-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "BULK" ? "border-[var(--color-gbsa-primary)] text-[var(--color-gbsa-primary)] bg-blue-50/30" : "border-transparent text-gray-500 hover:bg-gray-50"}`}
-            onClick={() => setActiveTab("BULK")}
-          >
-            엑셀 대량 업로드
-          </button>
-        </div>
+        {/* Tabs (hide when preview is shown) */}
+        {!bulkPreview && (
+          <div className="flex border-b border-gray-200">
+            <button 
+              className={`flex-1 py-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "SINGLE" ? "border-[var(--color-gbsa-primary)] text-[var(--color-gbsa-primary)] bg-blue-50/30" : "border-transparent text-gray-500 hover:bg-gray-50"}`}
+              onClick={() => setActiveTab("SINGLE")}
+            >
+              단건 등록
+            </button>
+            <button 
+              className={`flex-1 py-3 text-sm font-bold text-center border-b-2 transition-colors ${activeTab === "BULK" ? "border-[var(--color-gbsa-primary)] text-[var(--color-gbsa-primary)] bg-blue-50/30" : "border-transparent text-gray-500 hover:bg-gray-50"}`}
+              onClick={() => setActiveTab("BULK")}
+            >
+              엑셀 대량 업로드
+            </button>
+          </div>
+        )}
 
         {/* Form Body */}
-        <div className="p-6">
-          {activeTab === "SINGLE" ? (
+        <div className="p-6 max-h-[60vh] overflow-y-auto">
+          {activeTab === "SINGLE" && !bulkPreview ? (
             <form id="newCompanyForm" onSubmit={handleSingleSubmit} className="space-y-5">
               <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">기업명 <span className="text-red-500">*</span></label>
@@ -203,7 +228,6 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                 )}
               </div>
               
-              {/* Address input (full address) */}
               <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 ml-1">주소</label>
                 <div className="relative">
@@ -219,7 +243,6 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                   />
                 </div>
               </div>
-              {/* Hidden location derived from address */}
               <input type="hidden" value={location} />
               
               <div className="grid grid-cols-2 gap-4">
@@ -255,6 +278,63 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                 </div>
               </div>
             </form>
+          ) : bulkPreview ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-700">
+                  총 <span className="text-[var(--color-gbsa-primary)]">{bulkPreview.length}</span>건의 기업이 파싱되었습니다. 확인 후 등록해주세요.
+                </p>
+                <button
+                  onClick={() => setBulkPreview(null)}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  다시 업로드
+                </button>
+              </div>
+
+              {/* Preview Table */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="py-2.5 px-3 text-left font-semibold text-gray-600 w-10">#</th>
+                      <th className="py-2.5 px-3 text-left font-semibold text-gray-600">기업명</th>
+                      <th className="py-2.5 px-3 text-left font-semibold text-gray-600">사업자등록번호</th>
+                      <th className="py-2.5 px-3 text-left font-semibold text-gray-600">소재지</th>
+                      <th className="py-2.5 px-3 text-left font-semibold text-gray-600">지원분야</th>
+                      <th className="py-2.5 px-3 text-left font-semibold text-gray-600">주요제품</th>
+                      <th className="py-2.5 px-3 text-center font-semibold text-gray-600 w-20">상태</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {bulkPreview.map((c, i) => {
+                      const missing = isMissingRequired(c);
+                      return (
+                        <tr key={i} className={`${missing ? 'bg-red-50/40' : ''} hover:bg-gray-50/60 transition-colors`}>
+                          <td className="py-2 px-3 text-gray-400 text-xs">{i + 1}</td>
+                          <td className={`py-2 px-3 font-medium ${!c.companyName.trim() ? 'text-red-500' : 'text-gray-900'}`}>
+                            {c.companyName || '(빈 값)'}
+                          </td>
+                          <td className={`py-2 px-3 font-mono text-xs ${!c.businessNumber.trim() ? 'text-red-500' : 'text-gray-600'}`}>
+                            {c.businessNumber ? formatBusinessNumber(c.businessNumber) : '(빈 값)'}
+                          </td>
+                          <td className="py-2 px-3 text-gray-500 max-w-[120px] truncate">{c.location || '-'}</td>
+                          <td className="py-2 px-3 text-gray-500 max-w-[100px] truncate">{c.supportField || '-'}</td>
+                          <td className="py-2 px-3 text-gray-500 max-w-[100px] truncate">{c.mainProducts || '-'}</td>
+                          <td className="py-2 px-3 text-center">
+                            {missing ? (
+                              <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-600 font-semibold">필수값 누락</span>
+                            ) : (
+                              <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-600 font-semibold">정상</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           ) : (
             <div className="space-y-6">
               <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 text-sm text-gray-700">
@@ -303,7 +383,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
         </div>
 
         {/* Footer */}
-        {activeTab === "SINGLE" && (
+        {activeTab === "SINGLE" && !bulkPreview && (
           <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
             <button 
               type="button" 
@@ -322,6 +402,35 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
           </div>
         )}
 
+        {/* Bulk Preview Footer */}
+        {bulkPreview && (
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
+            <div className="text-sm text-gray-500">
+              {bulkPreview.filter(c => !isMissingRequired(c)).length}건 정상
+              {bulkPreview.some(c => isMissingRequired(c)) && (
+                <span className="ml-2 text-red-500">, {bulkPreview.filter(c => isMissingRequired(c)).length}건 필수값 누락</span>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                onClick={() => setBulkPreview(null)} 
+                className="px-5 py-2.5 text-sm bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                다시 선택
+              </button>
+              <button 
+                type="button" 
+                onClick={handleBulkSubmit}
+                disabled={submitting || bulkPreview.length === 0}
+                className="px-5 py-2.5 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? "등록 중..." : `${bulkPreview.length}건 등록`}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Saving Overlay */}
         <LoadingOverlay show={saving} message="등록 중..." />
 
@@ -332,7 +441,19 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--color-gbsa-primary)] animate-progress-bar w-full origin-left"></div>
               </div>
-              <p className="text-sm text-center mt-3 font-bold text-[var(--color-gbsa-primary)]">기업 데이터 일괄 등록 중...</p>
+              <p className="text-sm text-center mt-3 font-bold text-[var(--color-gbsa-primary)]">엑셀 파일 읽는 중...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Submitting Overlay */}
+        {submitting && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
+            <div className="w-64">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-full bg-[var(--color-gbsa-primary)] animate-progress-bar w-full origin-left"></div>
+              </div>
+              <p className="text-sm text-center mt-3 font-bold text-[var(--color-gbsa-primary)]">기업 데이터 등록 중...</p>
             </div>
           </div>
         )}

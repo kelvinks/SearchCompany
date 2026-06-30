@@ -220,6 +220,7 @@ export const excelService = {
       "appliedamount", "applied_amount", "amount", "requestedamount"
     );
     const seqNumIdx = getColIndex("연번", "순번", "번호", "no", "seq", "number");
+    console.log(`[ExcelService] Detected column indices:`, { programNameIdx, projectNameIdx, brnIdx });
 
     const cleanStr = (val: unknown): string => {
       if (val === undefined || val === null) return "";

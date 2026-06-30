@@ -16,28 +16,28 @@ async function generate() {
     { header: '신청금액', key: 'requestedAmount', width: 15 },
   ];
 
-  // Add 5 test cases
+  // Add 5 test cases with entirely new business numbers
   sheet.addRow({
     companyName: '(주)알파테크놀로지',
-    businessNumber: '1234567890',
+    businessNumber: '1111111111',
     location: '경기도 수원시 영통구 광교로 156',
-    supportField: '소프트웨어', // Matching keyword
+    supportField: '소프트웨어',
     mainProducts: 'AI 플랫폼',
     requestedAmount: 50000000
   });
 
   sheet.addRow({
     companyName: '베타헬스케어',
-    businessNumber: '2345678902', // Typo match
+    businessNumber: '2222222222',
     location: '경기도 성남시 분당구 판교로 289',
-    supportField: '바이오', // Matching keyword
+    supportField: '바이오',
     mainProducts: '헬스케어 디바이스',
     requestedAmount: 40000000
   });
 
   sheet.addRow({
     companyName: '신규스타트업',
-    businessNumber: '9999999999', // New safe company
+    businessNumber: '3333333333',
     location: '경기도 고양시 일산동구 중앙로 123',
     supportField: '소프트웨어',
     mainProducts: '블록체인 솔루션',
@@ -46,16 +46,16 @@ async function generate() {
 
   sheet.addRow({
     companyName: '감마정밀',
-    businessNumber: '3456789012', // Exact match & duplicate overlap suspect
+    businessNumber: '4444444444',
     location: '경기도 용인시 기흥구 흥덕중앙로 120',
-    supportField: '스마트공장', // Matching keyword
+    supportField: '스마트공장',
     mainProducts: '자동화 설비',
     requestedAmount: 60000000
   });
 
   sheet.addRow({
     companyName: '에타파이낸스',
-    businessNumber: '7890123456', // Exact match
+    businessNumber: '5555555555',
     location: '경기도 수원시 장안구 송원로 81',
     supportField: '소프트웨어/IT',
     mainProducts: '핀테크 플랫폼',

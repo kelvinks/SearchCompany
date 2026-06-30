@@ -106,17 +106,25 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
 
       for (const row of data) {
         const raw = row.rawData || {};
-        const brnRaw = row.businessNumber || raw["사업자등록번호"] || "";
+        
+        // 엑셀 헤더명과 정확히 매칭 (우선순위 제거)
+        const brnRaw = String(raw["사업자등록번호"] || "");
         const bNum = normalizeBusinessNumber(brnRaw);
-        const pName = row.appliedProgramName || raw["지원사업명"] || "";
-        const pjName = row.appliedProjectName || raw["지원과제명"] || "";
-        const stRaw = raw["상태"] || "선정";
+        
+        const yr = String(raw["년도"] || "");
+        const pName = String(raw["지원사업명"] || "");
+        const pjName = String(raw["지원과제명"] || "");
+        const stRaw = String(raw["상태"] || "선정");
+        
         const validStatus: SupportHistory["status"] = ["선정", "완료", "포기", "제외"].includes(stRaw) ? (stRaw as SupportHistory["status"]) : "선정";
-        const yr = raw["년도"] || raw["연도"] || "";
+        
         const selAmt = Number(raw["선정금액"] || 0);
         const supAmt = Number(raw["지원금액"] || 0);
-        const nts = raw["비고"] || "";
+        const nts = String(raw["비고"] || "");
 
+
+
+        // 기업명이 파일에 없으므로, 매칭된 기업 정보를 기반으로 설정
         const matchedCompany = companies.find(
           (c) => normalizeBusinessNumber(c.businessNumber) === bNum
         );
@@ -125,7 +133,7 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
           companyId: matchedCompany?.id || "UNKNOWN",
           companyName: matchedCompany?.companyName || `(매칭기업없음: ${brnRaw})`,
           history: {
-            year: yr || String(new Date().getFullYear()),
+            year: yr,
             programName: pName,
             projectName: pjName || undefined,
             status: validStatus,
@@ -354,12 +362,32 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
             <div className="space-y-4">
               <p className="text-sm font-semibold text-gray-700">총 {bulkPreview.length}건의 이력이 파싱되었습니다.</p>
               <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-2 py-2">기업명</th>
+                      <th className="px-2 py-2">사업자번호</th>
+                      <th className="px-2 py-2">지원사업명</th>
+                      <th className="px-2 py-2">지원과제명</th>
+                      <th className="px-2 py-2">선정금액</th>
+                      <th className="px-2 py-2">지원금액</th>
+                      <th className="px-2 py-2">비고</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                   {bulkPreview.map((e, i) => (
-                      <div key={i} className="px-4 py-2.5 text-sm border-b border-gray-100 last:border-b-0">
-                          <p className="font-semibold text-gray-800">{e.companyName}</p>
-                          <p className="text-xs text-gray-500">{e.history.programName} ({e.history.status})</p>
-                      </div>
+                      <tr key={i} className="border-b border-gray-100 last:border-b-0">
+                          <td className="px-2 py-2 truncate max-w-[100px]">{e.companyName}</td>
+                          <td className="px-2 py-2">{e.history.year}</td>
+                          <td className="px-2 py-2 truncate max-w-[100px]">{e.history.programName}</td>
+                          <td className="px-2 py-2 truncate max-w-[100px]">{e.history.projectName || '-'}</td>
+                          <td className="px-2 py-2">{e.history.selectedAmount.toLocaleString()}</td>
+                          <td className="px-2 py-2">{e.history.supportAmount.toLocaleString()}</td>
+                          <td className="px-2 py-2 truncate max-w-[60px]">{e.history.notes || '-'}</td>
+                      </tr>
                   ))}
+                  </tbody>
+                </table>
               </div>
               <button 
                   onClick={handleBulkSubmit}
