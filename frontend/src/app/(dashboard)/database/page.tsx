@@ -268,7 +268,7 @@ export default function DatabasePage() {
                       <td className="py-4 px-6 text-center text-gray-600 font-mono">
                         {(() => {
                           const hasRecentDrop = company.histories?.some(
-                            h => Number(h.year) >= 2025 && (h.status === "포기" || h.status === "제외")
+                            h => Number(h.year) >= new Date().getFullYear() - 1 && (h.status === "포기" || h.status === "제외")
                           );
                           return hasRecentDrop ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold text-xs font-mono shadow-sm">
