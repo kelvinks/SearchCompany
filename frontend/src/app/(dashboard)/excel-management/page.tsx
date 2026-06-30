@@ -145,9 +145,9 @@ export default function ExcelManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full min-h-0 space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-4 shrink-0">
         <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
           <div className="w-10 h-10 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-[var(--color-gbsa-primary)]">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -180,13 +180,13 @@ export default function ExcelManagementPage() {
       </div>
 
       {/* Upload List & Detail */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-0">
         {/* Upload List */}
-        <div className="lg:col-span-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="lg:col-span-1 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 shrink-0">
             <h3 className="text-lg font-semibold text-gray-800">업로드 목록</h3>
           </div>
-          <div className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
+          <div className="divide-y divide-gray-100 overflow-y-auto flex-1">
             {uploads.length === 0 ? (
               <div className="p-8 text-center text-gray-400">
                 <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -286,7 +286,7 @@ export default function ExcelManagementPage() {
         </div>
 
         {/* Detail View */}
-        <div className="lg:col-span-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="lg:col-span-2 bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
           {selectedUpload ? (
             <>
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
@@ -341,7 +341,7 @@ export default function ExcelManagementPage() {
                 </div>
               )}
               {/* Data Table */}
-              <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+              <div className="overflow-auto flex-1 min-h-0">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-[#F1F5F9] text-gray-600 sticky top-0">
                     <tr>
