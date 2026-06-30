@@ -265,8 +265,19 @@ export default function DatabasePage() {
                       className="hover:bg-[#EBF8FF] cursor-pointer transition-colors group"
                     >
                       <td className="py-4 px-6 text-left font-medium text-gray-900">{company.companyName}</td>
-                      <td className="py-4 px-6 text-center font-mono text-gray-600">
-                        <BusinessNumber value={company.businessNumber} />
+                      <td className="py-4 px-6 text-center text-gray-600 font-mono">
+                        {(() => {
+                          const hasRecentDrop = company.histories?.some(
+                            h => Number(h.year) >= 2025 && (h.status === "포기" || h.status === "제외")
+                          );
+                          return hasRecentDrop ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold text-xs font-mono shadow-sm">
+                              <BusinessNumber value={company.businessNumber} />
+                            </span>
+                          ) : (
+                            <BusinessNumber value={company.businessNumber} />
+                          );
+                        })()}
                       </td>
                       <td className="py-4 px-6 text-center text-gray-500">{extractSiGun(company.location)}</td>
                       <td className="py-4 px-6 text-left text-gray-500">{company.supportField}</td>
