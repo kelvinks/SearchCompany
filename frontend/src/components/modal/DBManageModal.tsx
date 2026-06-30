@@ -443,7 +443,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
               )}
             </div>
             <div className="text-sm text-gray-700">
-              유효 총 지원금액: <span className="inline-flex items-center ml-2 px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-lg font-bold"><span className="font-mono">{validTotalAmount.toLocaleString()}</span><span className="font-sans ml-0.5">원</span></span>
+              유효 총 지원금액
+              <span className="inline-flex items-center ml-2 px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-lg font-bold"><span className="text-xs font-normal mr-1.5 opacity-80">지원금총액</span><span className="font-mono">{validTotalAmount.toLocaleString()}</span><span className="font-sans ml-0.5">원</span></span>
             </div>
           </div>
 
