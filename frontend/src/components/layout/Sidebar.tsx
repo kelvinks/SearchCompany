@@ -44,7 +44,7 @@ export default function Sidebar() {
   const navItems = [
     {
       name: "통합검색",
-      href: "/",
+      href: "/search",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -71,7 +71,7 @@ export default function Sidebar() {
     },
     {
       name: "검증결과",
-      href: "/verification-results",
+      href: "/verify",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -80,10 +80,19 @@ export default function Sidebar() {
     },
     {
       name: "엑셀관리",
-      href: "/excel-management",
+      href: "/file",
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+    },
+    {
+      name: "조회요청기업",
+      href: "/request",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
       ),
     },
@@ -95,13 +104,21 @@ export default function Sidebar() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       ),
+    }, {
+      name: "로딩 테스트",
+      href: "/loading-test",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      ),
     }] : []),
   ];
 
   return (
     <aside className="w-64 bg-white/70 backdrop-blur-md border-r border-slate-200/50 flex flex-col h-screen sticky top-0 z-20 shrink-0">
       <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white/30">
-        <Link href="/" className="flex items-center space-x-2.5">
+        <Link href="/search" className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-[var(--color-gbsa-primary)] flex items-center justify-center text-white font-black shadow-md shadow-blue-500/20">
             G
           </div>
@@ -111,7 +128,7 @@ export default function Sidebar() {
         </Link>
       </div>
       <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-        {navItems.filter(item => item.href !== "/font-test").map((item) => {
+        {navItems.filter(item => item.href !== "/font-test" && item.href !== "/loading-test").map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -132,7 +149,7 @@ export default function Sidebar() {
         })}
       </nav>
       {isSuperUser && (
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-4 border-t border-slate-100 space-y-1">
           <Link
             href="/font-test"
             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
@@ -147,6 +164,21 @@ export default function Sidebar() {
               </svg>
             </span>
             <span>폰트 테스트</span>
+          </Link>
+          <Link
+            href="/loading-test"
+            className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              pathname === "/loading-test"
+                ? "bg-[var(--color-gbsa-primary)]/10 text-[var(--color-gbsa-primary)] font-bold border-l-4 border-[var(--color-gbsa-primary)] shadow-sm" 
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent hover:translate-x-1"
+            }`}
+          >
+            <span className={pathname === "/loading-test" ? "text-[var(--color-gbsa-primary)]" : "text-slate-400"}>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </span>
+            <span>로딩 테스트</span>
           </Link>
         </div>
       )}

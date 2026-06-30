@@ -6,12 +6,15 @@ import { Company, SupportHistory } from "@/data/mockData";
 import HistoryModal from "@/components/modal/HistoryModal";
 import SearchResultModal from "@/components/modal/SearchResultModal";
 import BusinessNumber from "@/components/BusinessNumber";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { extractSiGun } from "@/utils/format";
 
 export default function VerificationResultsPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [saving, setSaving] = useState(false);
 
   // Search result popup state
   const [searchPopup, setSearchPopup] = useState<{
@@ -55,26 +58,41 @@ export default function VerificationResultsPage() {
   };
 
   const handleUpdateHistory = async (companyId: string, historyId: string, updates: Partial<SupportHistory>) => {
-    const updatedCo = await companyService.updateSupportHistory(companyId, historyId, updates);
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
-    if (selectedCompany && selectedCompany.id === companyId) {
-      setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
+    setSaving(true);
+    try {
+      const updatedCo = await companyService.updateSupportHistory(companyId, historyId, updates);
+      setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
+      if (selectedCompany && selectedCompany.id === companyId) {
+        setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleConfirmDuplicate = async (companyId: string) => {
-    const updatedCo = await companyService.updateCompany(companyId, { matchStatus: "EXACT", matchScore: 100 });
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
-    if (selectedCompany && selectedCompany.id === companyId) {
-      setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
+    setSaving(true);
+    try {
+      const updatedCo = await companyService.updateCompany(companyId, { matchStatus: "EXACT", matchScore: 100 });
+      setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
+      if (selectedCompany && selectedCompany.id === companyId) {
+        setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleFalseAlarm = async (companyId: string) => {
-    const updatedCo = await companyService.updateCompany(companyId, { matchStatus: "NEW", matchScore: 0 });
-    setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
-    if (selectedCompany && selectedCompany.id === companyId) {
-      setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
+    setSaving(true);
+    try {
+      const updatedCo = await companyService.updateCompany(companyId, { matchStatus: "NEW", matchScore: 0 });
+      setCompanies((prev) => prev.map((c) => (c.id === companyId ? { ...c, ...updatedCo } : c)));
+      if (selectedCompany && selectedCompany.id === companyId) {
+        setSelectedCompany((prev) => (prev ? { ...prev, ...updatedCo } : null));
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -306,6 +324,7 @@ export default function VerificationResultsPage() {
           onClose={() => setSearchPopup(null)}
         />
       )}
+      <LoadingOverlay show={saving} message="저장 중..." />
     </div>
   );
 }

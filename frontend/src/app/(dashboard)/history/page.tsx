@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { companyService, SearchLog } from "@/services/companyService";
 import BusinessNumber from "@/components/BusinessNumber";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { Company, SupportHistory } from "@/data/mockData";
 import { matchingService } from "@/services/matchingService";
 import HistoryModal from "@/components/modal/HistoryModal";
@@ -65,9 +66,13 @@ interface DisplayItem {
   sourceFile?: string;
   isBulk: boolean;
   batchCompany?: Company;
+  batchResults?: Company[];
   manualCompany?: Company;
   appliedProgramName?: string;
   appliedProjectName?: string;
+  resultCount?: number;
+  duplicateCount?: number;
+  totalCount?: number;
 }
 
 export default function HistoryPage() {
@@ -76,7 +81,9 @@ export default function HistoryPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [batchFallbackPending, setBatchFallbackPending] = useState<SearchLog[]>([]);
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
 
   // Search result popup from 통합검색
   const [searchPopup, setSearchPopup] = useState<{
@@ -114,36 +121,28 @@ export default function HistoryPage() {
 
       for (const log of logs) {
         if (log.type === "BATCH") {
-          // Try to expand inline (no extra network call)
           const results = extractBatchCompanies(log);
           if (results.length > 0) {
             const parsed = parseDescription(log.description);
-            results.forEach((company, idx) => {
-              const isDuplicate =
-                (company as any).matchStatus === "EXACT" ||
-                (company as any).matchStatus === "FUZZY";
-              items.push({
-                id: `${log.id}_${idx}`,
-                title: company.companyName || company.businessNumber || "(이름 없음)",
-                brn: company.businessNumber || undefined,
-                orgName: log.orgName,
-                docNum: log.docNum,
-                createdAt: log.createdAt,
-                riskLevel: isDuplicate ? "High Risk" : "Safe",
-                desc: parsed.desc || undefined,
-                sourceFile: log.title,
-                isBulk: true,
-                batchCompany: {
-                  ...company,
-                  appliedProgramName: company.appliedProgramName || (company as any).appliedProgramName,
-                  appliedProjectName: company.appliedProjectName || (company as any).appliedProjectName,
-                },
-                appliedProgramName: company.appliedProgramName || (company as any).appliedProgramName,
-                appliedProjectName: company.appliedProjectName || (company as any).appliedProjectName,
-              });
+            const dupCount = results.filter(
+              (c) => c.matchStatus === "EXACT" || c.matchStatus === "FUZZY"
+            ).length;
+            items.push({
+              id: log.id,
+              title: log.title,
+              orgName: log.orgName,
+              docNum: log.docNum,
+              createdAt: log.createdAt,
+              riskLevel: dupCount > 0 ? "High Risk" : "Safe",
+              desc: parsed.desc || undefined,
+              sourceFile: parsed.sourceFile,
+              isBulk: true,
+              batchResults: results,
+              resultCount: results.length,
+              duplicateCount: dupCount,
+              totalCount: results.length,
             });
           } else {
-            // No inline data – fall back to getBatchResults (separate query / localStorage)
             needFallback.push(log);
           }
         } else {
@@ -189,32 +188,25 @@ export default function HistoryPage() {
         const results = await companyService.getBatchResults(log.id);
         if (results && results.length > 0) {
           const parsed = parseDescription(log.description);
-          results.forEach((company, idx) => {
-            const isDuplicate =
-              (company as any).matchStatus === "EXACT" ||
-              (company as any).matchStatus === "FUZZY";
-            extra.push({
-              id: `${log.id}_${idx}`,
-              title: company.companyName || company.businessNumber || "(이름 없음)",
-              brn: company.businessNumber || undefined,
-              orgName: log.orgName,
-              docNum: log.docNum,
-              createdAt: log.createdAt,
-              riskLevel: isDuplicate ? "High Risk" : "Safe",
-              desc: parsed.desc || undefined,
-              sourceFile: log.title,
-              isBulk: true,
-              batchCompany: {
-                ...company,
-                appliedProgramName: company.appliedProgramName || (company as any).appliedProgramName,
-                appliedProjectName: company.appliedProjectName || (company as any).appliedProjectName,
-              },
-              appliedProgramName: company.appliedProgramName || (company as any).appliedProgramName,
-              appliedProjectName: company.appliedProjectName || (company as any).appliedProjectName,
-            });
+          const dupCount = results.filter(
+            (c) => c.matchStatus === "EXACT" || c.matchStatus === "FUZZY"
+          ).length;
+          extra.push({
+            id: log.id,
+            title: log.title,
+            orgName: log.orgName,
+            docNum: log.docNum,
+            createdAt: log.createdAt,
+            riskLevel: dupCount > 0 ? "High Risk" : "Safe",
+            desc: parsed.desc || undefined,
+            sourceFile: parsed.sourceFile,
+            isBulk: true,
+            batchResults: results,
+            resultCount: results.length,
+            duplicateCount: dupCount,
+            totalCount: results.length,
           });
         }
-        // If getBatchResults also returns nothing, we silently skip (no data to show)
       }
       if (extra.length > 0) {
         setDisplayItems((prev) => [...prev, ...extra]);
@@ -224,19 +216,16 @@ export default function HistoryPage() {
   }, [batchFallbackPending]);
 
   const handleViewDetails = (item: DisplayItem) => {
-    // 1. If we have a serialized bulk result, use it directly (1st priority)
-    if (item.batchCompany) {
-      setSelectedCompany(item.batchCompany);
+    if (item.isBulk) {
+      setExpandedGroupId(expandedGroupId === item.id ? null : item.id);
       return;
     }
 
-    // 2. If we have a serialized manual search result, use it directly (1st priority)
     if (item.manualCompany) {
       setSelectedCompany(item.manualCompany);
       return;
     }
 
-    // 3. Fallback: Reconstruct matching against current DB state
     const isBrn = item.brn || (/^[0-9\-\s]+$/.test(item.title) ? item.title : "");
     const candidate: Partial<Company> = isBrn
       ? { 
@@ -252,19 +241,26 @@ export default function HistoryPage() {
     setSelectedCompany(matchingService.matchCompany(candidate, companies));
   };
 
+  const closeExpandedGroup = () => setExpandedGroupId(null);
+
   const handleUpdateHistory = async (
     companyId: string,
     historyId: string,
     updates: Partial<SupportHistory>
   ) => {
-    await companyService.updateSupportHistory(companyId, historyId, updates);
-    const data = await companyService.getCompanies();
-    setCompanies(data);
-    if (selectedCompany) {
-      const candidate: Partial<Company> = selectedCompany.businessNumber
-        ? { businessNumber: selectedCompany.businessNumber }
-        : { companyName: selectedCompany.companyName };
-      setSelectedCompany(matchingService.matchCompany(candidate, data));
+    setSaving(true);
+    try {
+      await companyService.updateSupportHistory(companyId, historyId, updates);
+      const data = await companyService.getCompanies();
+      setCompanies(data);
+      if (selectedCompany) {
+        const candidate: Partial<Company> = selectedCompany.businessNumber
+          ? { businessNumber: selectedCompany.businessNumber }
+          : { companyName: selectedCompany.companyName };
+        setSelectedCompany(matchingService.matchCompany(candidate, data));
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -282,7 +278,7 @@ export default function HistoryPage() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12" onClick={closeExpandedGroup}>
       {/* Header */}
       <div className="flex justify-end items-center">
         <span className="text-sm text-gray-400 font-medium">총 <span className="font-mono">{filteredItems.length}</span>건</span>
@@ -316,80 +312,164 @@ export default function HistoryPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems.length > 0 ? filteredItems.map((item) => {
-            const isHighRisk = item.riskLevel === "High Risk";
+            const isExpanded = expandedGroupId === item.id;
             return (
               <div
                 key={item.id}
-                className="bg-white/90 backdrop-blur-sm border border-gray-100 rounded-2xl p-6 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden group"
-                onClick={() => handleViewDetails(item)}
+                className={isExpanded ? "col-span-full" : ""}
               >
-                <div className="flex justify-between items-start">
-                  <div className="p-2.5 bg-blue-50 rounded-xl text-[var(--color-gbsa-primary)] group-hover:scale-110 transition-transform">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap justify-end">
-                    {item.isBulk && (
-                      <span className="font-semibold text-xs px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700">대량</span>
-                    )}
-                    <span className={`font-semibold text-xs px-3 py-1.5 rounded-full ${
-                      item.riskLevel === "High Risk" ? "bg-red-100 text-red-700" :
-                      item.riskLevel === "Safe" ? "bg-emerald-100 text-emerald-700" :
-                      "bg-blue-100 text-blue-700"
-                    }`}>
-                      {item.riskLevel === "High Risk" ? "중복의심" :
-                       item.riskLevel === "Safe" ? "안전" : "단일검색"}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className={`text-lg font-bold text-gray-900 truncate ${/^[0-9\-\s]+$/.test(item.title) ? 'font-mono' : ''}`}>
-                    {/^[0-9\-\s]+$/.test(item.title) ? <BusinessNumber value={item.title} /> : item.title}
-                  </h3>
-                  {item.brn && (
-                    <p className="text-xs text-gray-400 font-mono mt-0.5"><BusinessNumber value={item.brn} /></p>
+                {/* Stacked card effect for BATCH items */}
+                <div
+                  className={`relative rounded-2xl transition-all ${
+                    isExpanded ? "" : "hover:scale-[1.01]"
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {item.isBulk && !isExpanded && (
+                    <>
+                      <div className="absolute top-[10px] left-[10px] w-full h-full bg-white/80 rounded-2xl border border-gray-200 shadow-sm" style={{ zIndex: -3 }} />
+                      <div className="absolute top-[5px] left-[5px] w-full h-full bg-white/85 rounded-2xl border border-gray-200 shadow-sm" style={{ zIndex: -2 }} />
+                    </>
                   )}
-                  <p className="text-sm text-gray-400 mt-1">조회 일시: {formatTime(item.createdAt)}</p>
-                </div>
-
-                <div className="flex flex-col gap-1.5 text-sm text-gray-600">
-                  {item.orgName && (
-                    <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      <span className="truncate">요청기관: {item.orgName}</span>
-                    </div>
-                  )}
-                  {item.docNum && (
-                    <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                      </svg>
-                      <span>문서번호: {item.docNum}</span>
-                    </div>
-                  )}
-                  {item.desc && (
-                    <p className="text-xs text-gray-500 italic bg-gray-50 px-2 py-1.5 rounded-lg line-clamp-1 mt-1">&ldquo;{item.desc}&rdquo;</p>
-                  )}
-                  {item.isBulk && item.sourceFile && (
-                    <p className="text-[10px] text-indigo-500 truncate">📎 {item.sourceFile}</p>
-                  )}
-                </div>
-
-                <div className="mt-auto pt-4 border-t border-gray-100 flex justify-end">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleViewDetails(item); }}
-                    className="text-[var(--color-gbsa-primary)] hover:underline flex items-center gap-1 text-sm font-medium"
+                  <div className={`bg-white/90 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm cursor-pointer overflow-hidden group ${
+                    isExpanded ? "" : "hover:shadow-md"
+                  } ${item.isBulk && !isExpanded ? "relative" : ""}`}>
+                  {/* Summary header */}
+                  <div
+                    className="p-6 flex flex-col gap-4"
+                    onClick={() => handleViewDetails(item)}
                   >
-                    상세 보기
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </button>
+                  <div className="flex justify-between items-start">
+                    <div className="p-2.5 bg-blue-50 rounded-xl text-[var(--color-gbsa-primary)] group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                      {item.isBulk && (
+                        <span className="font-semibold text-xs px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700">대량</span>
+                      )}
+                      <span className={`font-semibold text-xs px-3 py-1.5 rounded-full ${
+                        item.riskLevel === "High Risk" ? "bg-red-100 text-red-700" :
+                        item.riskLevel === "Safe" ? "bg-emerald-100 text-emerald-700" :
+                        "bg-blue-100 text-blue-700"
+                      }`}>
+                        {item.riskLevel === "High Risk" ? "중복의심" :
+                         item.riskLevel === "Safe" ? "안전" : "단일검색"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className={`text-lg font-bold text-gray-900 truncate ${/^[0-9\-\s]+$/.test(item.title) ? 'font-mono' : ''}`}>
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-gray-400 mt-1">조회 일시: {formatTime(item.createdAt)}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 text-sm text-gray-600">
+                    {item.orgName && (
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span className="truncate">요청기관: {item.orgName}</span>
+                      </div>
+                    )}
+                    {item.docNum && (
+                      <div className="flex items-center gap-2">
+                        <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        <span>문서번호: {item.docNum}</span>
+                      </div>
+                    )}
+                    {item.desc && (
+                      <p className="text-xs text-gray-500 italic bg-gray-50 px-2 py-1.5 rounded-lg line-clamp-1 mt-1">&ldquo;{item.desc}&rdquo;</p>
+                    )}
+                    {item.resultCount !== undefined && (
+                      <div className="flex items-center gap-3 mt-1 text-xs">
+                        <span className="text-gray-500">총 <strong>{item.resultCount}</strong>건</span>
+                        {item.duplicateCount !== undefined && item.duplicateCount > 0 && (
+                          <span className="text-red-500 font-medium">중복 {item.duplicateCount}건</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {item.isBulk ? (
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                      <span className="text-xs text-gray-400">
+                        {isExpanded ? "접기" : "펼쳐서 기업 목록 보기"}
+                      </span>
+                      <svg
+                        className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-end pt-2 border-t border-gray-100">
+                      <span className="text-[var(--color-gbsa-primary)] hover:underline flex items-center gap-1 text-sm font-medium">
+                        상세 보기
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Expanded company list */}
+                {isExpanded && item.batchResults && item.batchResults.length > 0 && (
+                  <div className="border-t border-gray-100 bg-gray-50/50">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-gray-100 text-gray-500">
+                          <tr>
+                            <th className="py-3 px-4 font-medium">기업명</th>
+                            <th className="py-3 px-4 font-medium text-center">사업자등록번호</th>
+                            <th className="py-3 px-4 font-medium text-center">매칭</th>
+                            <th className="py-3 px-4 font-medium text-left">지원분야</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {item.batchResults.map((company, idx) => {
+                            const isDup = company.matchStatus === "EXACT" || company.matchStatus === "FUZZY";
+                            return (
+                              <tr
+                                key={`${company.businessNumber}-${idx}`}
+                                className="hover:bg-blue-50/50 transition-colors cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCompany(company);
+                                }}
+                              >
+                                <td className="py-2.5 px-4 font-medium text-gray-900">{company.companyName}</td>
+                                <td className="py-2.5 px-4 text-center text-gray-600 font-mono">
+                                  {company.businessNumber ? <BusinessNumber value={company.businessNumber} /> : "-"}
+                                </td>
+                                <td className="py-2.5 px-4 text-center">
+                                  {company.matchStatus === "EXACT" ? (
+                                    <span className="inline-flex px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">정확</span>
+                                  ) : company.matchStatus === "FUZZY" ? (
+                                    <span className="inline-flex px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-semibold">유사</span>
+                                  ) : (
+                                    <span className="inline-flex px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">신규</span>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-4 text-gray-500">{company.supportField || "-"}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+              </div>
               </div>
             );
           }) : (
@@ -418,6 +498,7 @@ export default function HistoryPage() {
           onClose={() => setSearchPopup(null)}
         />
       )}
+      <LoadingOverlay show={saving} message="저장 중..." />
     </div>
   );
 }

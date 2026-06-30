@@ -1,9 +1,10 @@
 "use client";
 
 import { Company } from "@/data/mockData";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { companyService } from "@/services/companyService";
 import BusinessNumber from "@/components/BusinessNumber";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 interface DeletedDBManageModalProps {
   company: Company & { deletedAt?: string };
@@ -12,6 +13,8 @@ interface DeletedDBManageModalProps {
 }
 
 export default function DeletedDBManageModal({ company, onClose, onRefresh }: DeletedDBManageModalProps) {
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     const originalBodyOverflow = document.body.style.overflow;
     const mainEl = document.querySelector("main");
@@ -34,6 +37,7 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
     if (!confirm(`"${company.companyName}" 기업 데이터를 복원하시겠습니까?\n이전의 지원 이력까지 모두 원상 복구됩니다.`)) {
       return;
     }
+    setSaving(true);
     try {
       await companyService.restoreCompany(company.id);
       alert("기업 데이터가 성공적으로 복원되었습니다.");
@@ -42,6 +46,8 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
     } catch (err) {
       console.error("Error restoring company:", err);
       alert("복원 중 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -49,6 +55,7 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
     if (!confirm(`※ 경고: "${company.companyName}" 기업 및 관련 지원 이력을 영구 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 복구가 불가능합니다.`)) {
       return;
     }
+    setSaving(true);
     try {
       await companyService.permanentDeleteCompany(company.id);
       alert("영구 삭제 처리가 완료되었습니다.");
@@ -57,6 +64,8 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
     } catch (err) {
       console.error("Error permanently deleting company:", err);
       alert("영구 삭제 중 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -218,6 +227,7 @@ export default function DeletedDBManageModal({ company, onClose, onRefresh }: De
             </button>
           </div>
         </div>
+        <LoadingOverlay show={saving} message="처리 중..." />
       </div>
     </div>
   );

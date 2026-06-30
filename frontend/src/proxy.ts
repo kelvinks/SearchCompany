@@ -9,7 +9,7 @@ export function proxy(request: NextRequest) {
   const session = request.cookies.get("gbsa_session");
   const { pathname } = request.nextUrl;
 
-  const isLoginPage = pathname === "/login";
+  const isLoginPage = pathname === "/login" || pathname === "/";
   const isStaticAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
@@ -29,7 +29,7 @@ export function proxy(request: NextRequest) {
 
   // If logged in and trying to access /login, redirect to dashboard
   if (session && isLoginPage) {
-    const dashboardUrl = new URL("/", request.url);
+    const dashboardUrl = new URL("/search", request.url);
     return NextResponse.redirect(dashboardUrl);
   }
 

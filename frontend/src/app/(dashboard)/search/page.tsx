@@ -6,12 +6,15 @@ import { Company } from "@/data/mockData";
 import { companyService } from "@/services/companyService";
 import { matchingService } from "@/services/matchingService";
 import { excelService } from "@/services/excelService";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 
 export default function DashboardPage() {
   const router = useRouter();
   const [isUploading, setIsUploading] = useState(false);
   
+  const [searching, setSearching] = useState(false);
+
   // Single Search State
   const [singleSearchQuery, setSingleSearchQuery] = useState("");
   const [singleSearchProgram, setSingleSearchProgram] = useState("");
@@ -48,12 +51,16 @@ export default function DashboardPage() {
       if (passwordAttempts.length === 0) passwordAttempts.push(undefined);
       console.log(`[Upload] Step 1 - ${passwordAttempts.length} password attempt(s), manual: ${!!excelPassword}, filePattern: ${!!filePassword}`);
 
+      // Track which password actually worked (for decrypting before blob upload)
+      let workingPassword: string | undefined;
+
       // Helper: try each password until one succeeds
       const tryPasswords = async <T,>(label: string, fn: (pw?: string) => Promise<T>): Promise<T> => {
         let lastError: any;
         for (const pw of passwordAttempts) {
           try {
             const result = await fn(pw);
+            if (pw && !workingPassword) workingPassword = pw;
             console.log(`[Upload] ${label} OK`);
             return result;
           } catch (err: any) {
@@ -87,16 +94,25 @@ export default function DashboardPage() {
         throw new Error(`[원본 데이터 파싱 실패] ${err.message}`);
       }
 
-      // 4. Upload file to Vercel Blob Storage
+      // 4. Upload file to Vercel Blob Storage (decrypt first if password was used)
       console.log(`[Upload] Step 4 - Uploading to Vercel Blob...`);
-      const fileUrl = await excelService.uploadFileToStorage(file);
+      let uploadedFile: File = file;
+      if (workingPassword) {
+        try {
+          uploadedFile = await excelService.decryptFile(file, workingPassword);
+          console.log(`[Upload] Step 4 - Decrypted OK: ${uploadedFile.name}`);
+        } catch (decErr: any) {
+          console.warn(`[Upload] Step 4 - Decryption failed, uploading original:`, decErr.message);
+        }
+      }
+      const fileUrl = await excelService.uploadFileToStorage(uploadedFile);
       console.log(`[Upload] Step 4 OK - URL: ${fileUrl || "null"}`);
 
       // 5. Save to excel_uploads table (including form fields)
       console.log(`[Upload] Step 5 - Saving to excel_uploads...`);
       await companyService.addExcelUpload({
-        fileName: file.name,
-        fileSize: file.size,
+        fileName: uploadedFile.name,
+        fileSize: uploadedFile.size,
         fileUrl: fileUrl || undefined,
         sheetName: rawData.sheetName,
         totalRows: rawData.data.length,
@@ -182,6 +198,7 @@ export default function DashboardPage() {
     if (e) e.preventDefault();
     if (!singleSearchQuery.trim()) return;
 
+    setSearching(true);
     try {
       const db = await companyService.getCompanies();
       const isBrn = /^[0-9-]*$/.test(singleSearchQuery.replace(/\s/g, ""));
@@ -218,16 +235,18 @@ export default function DashboardPage() {
         },
       }).catch((e) => console.warn("Search log save failed:", e));
 
-      // Save result to sessionStorage and navigate to verification-results page
+      // Save result to sessionStorage and navigate to verify page
       sessionStorage.setItem("gbsa_search_results", JSON.stringify({
         type: "SINGLE",
         result: matched,
         query: singleSearchQuery.trim(),
       }));
-      router.push("/verification-results");
+      router.push("/verify");
     } catch (err: any) {
       console.error("Single search error:", err);
       alert("검색 중 오류가 발생했습니다.");
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -434,6 +453,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <LoadingOverlay show={searching} message="검색 중..." />
     </div>
   );
 }

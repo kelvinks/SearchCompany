@@ -104,7 +104,7 @@ export default function HistoryModal({
               <p className="text-xs text-gray-400 mt-0.5 font-medium">신규 지원 신청 건과 내부 DB 데이터를 교차 대조하여 검토합니다.</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors shrink-0 ml-4">
+          <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="p-2 hover:bg-gray-200 rounded-full transition-colors shrink-0 ml-4">
             <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -210,6 +210,15 @@ export default function HistoryModal({
                 <span className="inline-block text-[6pt] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-mono font-semibold leading-none">DB-ORG-{company.id}</span>
               </div>
 
+              {company.matchStatus === "NEW" ? (
+                <div className="flex flex-col items-center justify-center py-10 text-gray-400 gap-3">
+                  <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <p className="text-sm font-medium">일치하는 내부 기업이 없습니다</p>
+                  <p className="text-xs">등록기업에 해당 기업을 먼저 등록해주세요</p>
+                </div>
+              ) : (
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 mb-1 flex items-center gap-1">
@@ -217,7 +226,7 @@ export default function HistoryModal({
                     기업명
                   </label>
                   <div className="text-sm font-medium text-gray-900 p-2.5 bg-white rounded-lg border border-transparent">
-                    {company.dbCompanyName || company.companyName || "-"}
+                    {company.dbCompanyName || "-"}
                     {company.matchStatus === "FUZZY" && (
                       <span className="ml-2 text-xs text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100 font-semibold font-mono">
                         유사도 {company.matchScore}%
@@ -234,11 +243,7 @@ export default function HistoryModal({
                   <div className="text-sm font-mono text-gray-800 p-2.5 bg-white rounded-lg border border-gray-200 flex justify-between items-center">
                     <span>
                       {(() => {
-                        const displayBrn = company.dbBusinessNumber || 
-                                           company.businessNumber || 
-                                           (company as any).brn || 
-                                           (company as any).business_number || 
-                                           (company as any).businessNumber;
+                        const displayBrn = company.dbBusinessNumber;
                         const cleanedBrn = (displayBrn && displayBrn !== "undefined" && displayBrn !== "null") ? displayBrn : null;
                         return cleanedBrn ? <BusinessNumber value={cleanedBrn} /> : "-";
                       })()}
@@ -285,10 +290,11 @@ export default function HistoryModal({
                     주소
                   </label>
                   <div className={`text-sm p-2.5 bg-white rounded-lg border border-transparent ${company.dbLocation && company.dbLocation !== company.location ? "bg-yellow-50 font-semibold" : ""}`}>
-                    {company.dbLocation || company.location || "-"}
+                    {company.dbLocation || "-"}
                   </div>
                 </div>
               </div>
+              )}
             </div>
           </div>
 

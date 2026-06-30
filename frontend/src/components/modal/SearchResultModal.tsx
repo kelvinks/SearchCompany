@@ -157,7 +157,7 @@ export default function SearchResultModal({
                   <tr>
                     <th className="py-3 px-4 font-semibold text-center">상태</th>
                     <th className="py-3 px-4 font-semibold text-left">기업명</th>
-                    <th className="py-3 px-4 font-semibold text-left">사업자등록번호</th>
+                    <th className="py-3 px-4 font-semibold text-center">사업자등록번호</th>
                     <th className="py-3 px-4 font-semibold text-left">지원사업명</th>
                     <th className="py-3 px-4 font-semibold text-center">소재지</th>
                     <th className="py-3 px-4 font-semibold text-right">누적지원금액</th>
@@ -174,7 +174,7 @@ export default function SearchResultModal({
                       <tr key={company.id || idx} className="hover:bg-gray-50 transition-colors">
                         <td className="py-3 px-4 text-center">{getMatchStatusBadge(company)}</td>
                         <td className="py-3 px-4 font-medium text-gray-800">{company.companyName}</td>
-                        <td className="py-3 px-4 font-mono text-gray-600">
+                        <td className="py-3 px-4 font-mono text-gray-600 text-center">
                           <BusinessNumber value={company.businessNumber} />
                         </td>
                         <td className="py-3 px-4 text-gray-500">{company.appliedProgramName || "-"}</td>

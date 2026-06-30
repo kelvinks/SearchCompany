@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, Fragment } from "react";
 import { companyService } from "@/services/companyService";
 import { formatBusinessNumber } from "@/utils/format";
 import BusinessNumber from "@/components/BusinessNumber";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 
 
@@ -98,8 +99,9 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
     const [histories, setHistories] = useState<SupportHistory[]>(company?.histories ?? []);
     // State to control visibility of the add new entry form
     const [isAdding, setIsAdding] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showDeleteConfirmDouble, setShowDeleteConfirmDouble] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showDeleteConfirmDouble, setShowDeleteConfirmDouble] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Initialize edit fields when company changes
   useEffect(() => {
@@ -124,7 +126,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
     }, [company]);
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingId || !company) return;
+    if (!editingId || !company || saving) return;
+    setSaving(true);
     const updated = await companyService.updateSupportHistory(company.id, editingId, {
       year: editYear,
       programName: editProgramName,
@@ -134,6 +137,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
       supportAmount: Number(editSupportAmount) || 0,
       notes: editNotes || undefined,
     });
+    setSaving(false);
     if (updated) {
       setHistories(updated.histories);
       setEditingId(null);
@@ -190,7 +194,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!programName) return;
+    if (!programName || saving) return;
+    setSaving(true);
 
     const updatedCo = await companyService.addSupportHistory(company.id, {
       year,
@@ -201,6 +206,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
       supportAmount: Number(supportAmount) || 0,
       notes: notes || undefined,
     });
+
+    setSaving(false);
 
     if (updatedCo) {
       setHistories(updatedCo.histories);
@@ -217,9 +224,13 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
   };
 
   const handleRemove = async (id: string) => {
+    if (!company || saving) return;
+    setSaving(true);
     const updatedCo = await companyService.removeSupportHistory(company.id, id);
+    setSaving(false);
     if (updatedCo) {
       setHistories(updatedCo.histories);
+      setEditingId(null);
     }
   };
 
@@ -321,6 +332,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (saving) return;
+                  setSaving(true);
                   const updated = await companyService.updateCompany(company.id, {
                     companyName: editCompanyName,
                     businessNumber: editBusinessNumber,
@@ -328,6 +341,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                     supportField: editSupportField,
                     mainProducts: editMainProducts,
                   });
+                  setSaving(false);
                   if (updated) {
                     setIsEditingCompany(false);
                     onClose();
@@ -424,7 +438,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                   </div>
                   <div className="flex gap-3">
                     <button type="button" onClick={() => setIsEditingCompany(false)} className="px-6 py-2 text-sm bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors">취소</button>
-                    <button type="submit" className="px-6 py-2 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] transition-colors">저장</button>
+                    <button type="submit" disabled={saving} className="px-6 py-2 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">저장</button>
                   </div>
                 </div>
               </form>
@@ -443,55 +457,56 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
               )}
             </div>
             <div className="text-sm text-gray-700">
-              유효 총 지원금액
-              <span className="inline-flex items-center ml-2 px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-lg font-bold"><span className="text-xs font-normal mr-1.5 opacity-80">지원금총액</span><span className="font-mono">{validTotalAmount.toLocaleString()}</span><span className="font-sans ml-0.5">원</span></span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--color-gbsa-primary)] text-white text-lg font-bold"><span className="text-xs font-normal mr-1.5 opacity-80">지원금총액</span><span className="font-mono">{validTotalAmount.toLocaleString()}</span><span className="font-sans ml-0.5">원</span></span>
             </div>
           </div>
 
           <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-6 bg-white shrink-0">
-            <table className="w-full text-left text-sm">
+            <table className="w-full table-fixed text-left text-sm">
+              <colgroup>
+                <col className="w-[72px]" />
+                <col />
+                <col className="w-[88px]" />
+                <col className="w-[120px]" />
+                <col className="w-[120px]" />
+                <col className="w-[88px]" />
+              </colgroup>
               <thead className="bg-[#F1F5F9] text-gray-600 border-b border-gray-200">
                 <tr>
-                  <th className="py-3 px-4 font-semibold text-center">
+                  <th className="py-3 px-4 font-semibold text-center whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1.5">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       년도
                     </div>
                   </th>
-                  <th className="py-3 px-4 font-semibold text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                      지원 사업명
+                  <th className="py-3 px-4 font-semibold text-left whitespace-nowrap">
+                    <div className="flex items-center justify-start gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                      지원사업명
                     </div>
                   </th>
-                  <th className="py-3 px-4 font-semibold text-center w-24">
+                  <th className="py-3 px-4 font-semibold text-center w-24 whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1.5">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                       상태
                     </div>
                   </th>
-                  <th className="py-3 px-4 font-semibold text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      선정 금액
+                  <th className="py-3 px-4 font-semibold text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      선정금액
                     </div>
                   </th>
-                  <th className="py-3 px-4 font-semibold text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                      지원 금액
+                  <th className="py-3 px-4 font-semibold text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                      지원금액
                     </div>
                   </th>
-                  <th className="py-3 px-4 font-semibold text-center w-16">
-                    <div className="flex items-center justify-center gap-1.5">
+                  <th className="py-3 px-4 font-semibold text-center w-24 whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       수정
-                    </div>
-                  </th>
-                  <th className="py-3 px-4 font-semibold text-center w-16">
-                    <div className="flex items-center justify-center gap-1.5">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      삭제
                     </div>
                   </th>
                 </tr>
@@ -500,7 +515,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                 {isAdding && (
                   <tr className="bg-green-50/20 border-y border-green-100">
                     <td></td>
-                    <td colSpan={6} className="p-4 pl-0">
+                    <td colSpan={5} className="p-4 pl-0">
                       <form onSubmit={(e) => { e.preventDefault(); handleAddSubmit(e); }} className="space-y-4 w-full bg-white p-5 rounded-xl border border-green-200 shadow-sm animate-fade-in text-left">
                         <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
                           <div className="flex items-center gap-2">
@@ -570,7 +585,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                           </div>
                           <div className="col-span-1 md:col-span-6 flex gap-2">
                             <button type="button" onClick={() => { setIsAdding(false); setProgramName(""); setProjectName(""); setSelectedAmount(""); setSupportAmount(""); setNotes(""); }} className="w-full py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg border transition-colors">취소</button>
-                            <button type="submit" className="w-full py-2 text-sm bg-[var(--color-gbsa-primary)] hover:bg-blue-800 text-white font-semibold rounded-lg shadow-sm transition-colors">저장</button>
+                            <button type="submit" disabled={saving} className="w-full py-2 text-sm bg-[var(--color-gbsa-primary)] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-sm transition-colors">저장</button>
                           </div>
                         </div>
                       </form>
@@ -578,16 +593,19 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                   </tr>
                 )}
                 {histories.length > 0 ? histories.map((history) => {
-                  const isDisabled = history.status === "포기" || history.status === "제외";
+                  const isForfeited = history.status === "포기";
+                  const isExcluded = history.status === "제외";
                   const isEditing = editingId === history.id;
+                  const rowStyle = isForfeited ? "bg-red-50/60 text-red-400" : isExcluded ? "bg-red-50/60 text-orange-400" : isEditing ? "bg-blue-50/40" : "hover:bg-blue-50/20";
+                  const textStyle = isForfeited ? "text-red-400" : isExcluded ? "text-orange-400" : "text-gray-800 font-semibold";
                   
                   return (
                     <Fragment key={history.id}>
-                      <tr className={`transition-colors ${isDisabled ? "bg-gray-50 text-gray-400" : isEditing ? "bg-blue-50/40" : "hover:bg-blue-50/20"}`}>
+                      <tr className={`transition-colors ${rowStyle}`}>
                         <td className="py-3.5 px-4 font-mono">{history.year}</td>
                         <td className="py-3.5 px-4 font-medium">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className={isDisabled ? "text-gray-400" : "text-gray-800 font-semibold"}>
+                            <span className={textStyle}>
                               {history.programName}
                               {history.projectName ? `(${history.projectName})` : ""}
                             </span>
@@ -602,8 +620,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                           <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-md ${
                             history.status === "선정" ? "bg-blue-100 text-blue-700" :
                             history.status === "완료" ? "bg-green-100 text-green-700" :
-                            history.status === "포기" ? "bg-gray-100 text-gray-700" :
-                            "bg-red-100 text-red-700"
+                            history.status === "포기" ? "bg-red-100 text-red-700" :
+                            "bg-orange-100 text-orange-700"
                           }`}>
                             {history.status}
                           </span>
@@ -611,7 +629,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                         <td className="py-3.5 px-4 text-right font-mono">
                           {history.selectedAmount.toLocaleString()}원
                         </td>
-                        <td className={`py-3.5 px-4 text-right font-bold font-mono ${isDisabled ? "line-through text-gray-400" : "text-[var(--color-gbsa-primary)]"}`}>
+                        <td className={`py-3.5 px-4 text-right font-bold font-mono ${isForfeited || isExcluded ? "line-through text-gray-400" : "text-[var(--color-gbsa-primary)]"}`}>
                           {history.supportAmount.toLocaleString()}원
                         </td>
                         <td className="py-3.5 px-4 text-center">
@@ -619,23 +637,21 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                             <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                           </button>
                         </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <button onClick={() => handleRemove(history.id)} className="text-gray-400 hover:text-red-500 transition-colors">
-                            <svg className="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                        </td>
                       </tr>
                       {isEditing && (
                         <tr className="bg-blue-50/20 border-y border-blue-100">
                           <td></td>
-                          <td colSpan={6} className="p-4 pl-0">
-                            <form onSubmit={handleEditSubmit} className="space-y-4 w-full bg-white p-5 rounded-xl border border-blue-100 shadow-sm animate-fade-in text-left">
+                    <td colSpan={5} className="p-4 pl-0">
+                      <form onSubmit={handleEditSubmit} className="space-y-4 w-full bg-white p-5 rounded-xl border border-blue-100 shadow-sm animate-fade-in text-left">
                               <div className="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
                                 <div className="flex items-center gap-2">
                                   <span className="w-2.5 h-2.5 rounded-full bg-[var(--color-gbsa-primary)] animate-pulse"></span>
                                   <h5 className="text-xs font-bold text-gray-800">이력 항목 편집</h5>
                                 </div>
-                                <button type="button" onClick={cancelEdit} className="text-xs text-gray-400 hover:text-gray-600">닫기 ✕</button>
+                                <button type="button" onClick={() => handleRemove(editingId!)} className="text-xs text-red-400 hover:text-red-600 flex items-center gap-1" title="삭제">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                  삭제
+                                </button>
                               </div>
                               
                               <div className="grid grid-cols-1 md:grid-cols-24 gap-4">
@@ -688,17 +704,23 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                                 </div>
                               </div>
                               
-                              <div className="grid grid-cols-1 md:grid-cols-24 gap-4 items-end">
-                                <div className="col-span-1 md:col-span-18">
+                              <div className="flex items-end gap-3">
+                                <div className="flex-1 min-w-0">
                                   <label className="block text-[11px] font-semibold text-gray-500 mb-1 flex items-center gap-1">
                                     <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                     비고
                                   </label>
                                   <input type="text" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="추가 메모 입력" className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-1 focus:ring-[var(--color-gbsa-primary)] outline-none bg-white" />
                                 </div>
-                                <div className="col-span-1 md:col-span-6 flex gap-2">
-                                  <button type="button" onClick={cancelEdit} className="w-full py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg border transition-colors">취소</button>
-                                  <button type="submit" className="w-full py-2 text-sm bg-[var(--color-gbsa-primary)] hover:bg-blue-800 text-white font-semibold rounded-lg shadow-sm transition-colors">저장</button>
+                                <div className="flex gap-2">
+                                  <button type="button" onClick={cancelEdit} className="px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg border transition-colors flex items-center justify-center gap-1 w-[62px]">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    취소
+                                  </button>
+                                  <button type="submit" disabled={saving} className="px-2 py-2 text-sm bg-[var(--color-gbsa-primary)] hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1 w-[62px]">
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                    저장
+                                  </button>
                                 </div>
                               </div>
                             </form>
@@ -709,7 +731,7 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
                   );
                 }) : (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-gray-500">등록된 이력이 없습니다.</td>
+                    <td colSpan={6} className="py-12 text-center text-gray-500">등록된 이력이 없습니다.</td>
                   </tr>
                 )}
               </tbody>
@@ -813,6 +835,8 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
           </div>
         </div>
       )}
+
+      <LoadingOverlay show={saving} />
     </div>
   );
 }

@@ -4,6 +4,7 @@
 import { Company, SupportHistory, mockCompanies } from "@/data/mockData";
 import { supabase, isSupabaseConfigured } from "./supabaseClient";
 import { matchingService } from "./matchingService";
+import { normalizeBusinessNumber } from "@/utils/format";
 
 export type SearchLog = {
   id: string;
@@ -110,7 +111,7 @@ function mapDbDeletedCompany(dbCo: any): Company & { deletedAt?: string } {
 function mapToDbCompany(co: Partial<Company>) {
   const dbCo: any = {};
   if (co.companyName !== undefined) dbCo.company_name = co.companyName;
-  if (co.businessNumber !== undefined) dbCo.business_number = co.businessNumber;
+  if (co.businessNumber !== undefined) dbCo.business_number = normalizeBusinessNumber(co.businessNumber);
   if (co.location !== undefined) dbCo.location = co.location;
   if (co.mainProducts !== undefined) dbCo.main_products = co.mainProducts;
   if (co.supportField !== undefined) dbCo.support_field = co.supportField;
@@ -169,7 +170,7 @@ function mapToDbSearchLog(l: Partial<SearchLog>) {
   if (l.description !== undefined) dbL.description = l.description;
   if (l.totalCount !== undefined) dbL.total_count = l.totalCount;
   if (l.duplicateCount !== undefined) dbL.duplicate_count = l.duplicateCount;
-  if (l.brn !== undefined) dbL.business_number = l.brn;
+  if (l.brn !== undefined) dbL.business_number = normalizeBusinessNumber(l.brn);
   if (l.additionalData !== undefined) dbL.additional_data = l.additionalData;
   return dbL;
 }
@@ -767,6 +768,7 @@ export const companyService = {
       totalRows: number;
       title?: string;
       description?: string;
+      fileUrl?: string;
     }
   ): Promise<boolean> {
     if (!isSupabaseConfigured || !supabase) {
@@ -779,20 +781,24 @@ export const companyService = {
         uploads[idx].total_rows = updates.totalRows;
         uploads[idx].sheet_title = updates.title || null;
         uploads[idx].sheet_description = updates.description || null;
+        if (updates.fileUrl !== undefined) uploads[idx].file_url = updates.fileUrl;
         localStorage.setItem("gbsa_excel_uploads", JSON.stringify(uploads));
       }
       return true;
     }
 
+    const supabaseUpdates: Record<string, any> = {
+      parsed_data: updates.parsedData,
+      column_headers: updates.columnHeaders,
+      total_rows: updates.totalRows,
+      sheet_title: updates.title || null,
+      sheet_description: updates.description || null,
+    };
+    if (updates.fileUrl !== undefined) supabaseUpdates.file_url = updates.fileUrl;
+
     const { error } = await supabase
       .from("excel_uploads")
-      .update({
-        parsed_data: updates.parsedData,
-        column_headers: updates.columnHeaders,
-        total_rows: updates.totalRows,
-        sheet_title: updates.title || null,
-        sheet_description: updates.description || null,
-      })
+      .update(supabaseUpdates)
       .eq("id", id);
 
     if (error) {
@@ -867,5 +873,95 @@ export const companyService = {
     }
 
     return true;
+  },
+
+  // ==================== Inquiry Companies (from BATCH search logs) ====================
+
+  async cleanupInquiryCompanies(): Promise<number> {
+    let removedCount = 0;
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: logs, error } = await supabase
+        .from("search_logs")
+        .select("id, additional_data")
+        .eq("type", "BATCH");
+
+      if (error) {
+        console.error("Error fetching logs for cleanup:", error);
+        return 0;
+      }
+
+      for (const log of (logs || [])) {
+        if (!log.additional_data?.results) continue;
+        const original = log.additional_data.results;
+        const filtered = original.filter((r: any) => r.business_number || r.businessNumber);
+        if (filtered.length === original.length) continue;
+
+        removedCount += original.length - filtered.length;
+
+        await supabase
+          .from("search_logs")
+          .update({ additional_data: { ...log.additional_data, results: filtered } })
+          .eq("id", log.id);
+      }
+    }
+
+    if (isClient) {
+      const stored = localStorage.getItem("gbsa_duplicate_search_logs");
+      if (stored) {
+        try {
+          const logs: SearchLog[] = JSON.parse(stored);
+          let changed = false;
+          for (const log of logs) {
+            if (log.type !== "BATCH") continue;
+            const addData = log.additionalData as any;
+            if (!addData?.results) continue;
+            const original = addData.results as Company[];
+            const filtered = original.filter((r) => r.businessNumber?.trim());
+            if (filtered.length === original.length) continue;
+            removedCount += original.length - filtered.length;
+            addData.results = filtered;
+            changed = true;
+          }
+          if (changed) {
+            localStorage.setItem("gbsa_duplicate_search_logs", JSON.stringify(logs));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    return removedCount;
+  },
+
+  async getInquiryCompanies(): Promise<Company[]> {
+    const logs = await this.getSearchLogs();
+    const batchLogs = logs.filter((l) => l.type === "BATCH");
+
+    const allResults: Company[] = [];
+
+    for (const log of batchLogs) {
+      let results: Company[] | undefined;
+
+      if (log.additionalData && (log.additionalData as any).results) {
+        results = (log.additionalData as any).results;
+      } else if (log.description) {
+        try {
+          const parsed = JSON.parse(log.description);
+          if (parsed.results) {
+            results = parsed.results;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (results && Array.isArray(results)) {
+        allResults.push(...results.filter((r) => r.businessNumber?.trim()));
+      }
+    }
+
+    return allResults;
   },
 };

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { companyService } from "@/services/companyService";
 import { excelService, ExcelUploadData } from "@/services/excelService";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import BusinessNumber from "@/components/BusinessNumber";
 
 export default function ExcelManagementPage() {
   const [uploads, setUploads] = useState<any[]>([]);
@@ -10,6 +12,8 @@ export default function ExcelManagementPage() {
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [reparsing, setReparsing] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editOrg, setEditOrg] = useState("");
   const [editDoc, setEditDoc] = useState("");
@@ -34,12 +38,17 @@ export default function ExcelManagementPage() {
   };
 
   const handleDelete = async (id: string) => {
-    const success = await companyService.deleteExcelUpload(id);
-    if (success) {
-      setUploads((prev) => prev.filter((u) => u.id !== id));
-      if (selectedUpload?.id === id) {
-        setSelectedUpload(null);
+    setDeleting(true);
+    try {
+      const success = await companyService.deleteExcelUpload(id);
+      if (success) {
+        setUploads((prev) => prev.filter((u) => u.id !== id));
+        if (selectedUpload?.id === id) {
+          setSelectedUpload(null);
+        }
       }
+    } finally {
+      setDeleting(false);
     }
     setDeleteConfirm(null);
   };
@@ -58,6 +67,7 @@ export default function ExcelManagementPage() {
         totalRows: result.data.length,
         title: result.title,
         description: result.description,
+        fileUrl: result.newFileUrl,
       });
       if (ok) {
         setSelectedUpload((prev: any) =>
@@ -69,6 +79,7 @@ export default function ExcelManagementPage() {
                 total_rows: result.data.length,
                 sheet_title: result.title || null,
                 sheet_description: result.description || null,
+                file_url: result.newFileUrl || prev?.file_url,
               }
             : prev
         );
@@ -84,6 +95,8 @@ export default function ExcelManagementPage() {
   };
 
   const handleEditSave = async (upload: any) => {
+    setSaving(true);
+    try {
     const ok = await companyService.updateExcelUploadMeta(upload.id, {
       orgName: editOrg,
       docNum: editDoc,
@@ -101,6 +114,9 @@ export default function ExcelManagementPage() {
       setEditingId(null);
     } else {
       alert("수정 실패");
+    }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -123,6 +139,20 @@ export default function ExcelManagementPage() {
       minute: "2-digit",
     });
   };
+
+  const isBizNumberColumn = (header: string, data: Record<string, any>[]) => {
+    if (/사업자\s*(등록)?\s*번호/.test(header)) return true;
+    const sample = data.slice(0, 20);
+    const matchCount = sample.filter((row) => {
+      const val = String(row[header] ?? '');
+      const digits = val.replace(/\D/g, '');
+      return digits.length === 10;
+    }).length;
+    return sample.length > 0 && matchCount / sample.length >= 0.5;
+  };
+
+  const getBizNumberHeaders = (headers: string[], data: Record<string, any>[]) =>
+    new Set(headers.filter((h) => isBizNumberColumn(h, data)));
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -342,28 +372,37 @@ export default function ExcelManagementPage() {
               )}
               {/* Data Table */}
               <div className="overflow-auto flex-1 min-h-0">
+                {(() => {
+                  const headers = selectedUpload.column_headers || [];
+                  const data = selectedUpload.parsed_data || [];
+                  const bizHeaders = getBizNumberHeaders(headers, data);
+                  return (
                 <table className="w-full text-left text-sm">
                   <thead className="bg-[#F1F5F9] text-gray-600 sticky top-0">
                     <tr>
-                      {(selectedUpload.column_headers || []).map((header: string) => (
-                        <th key={header} className="py-3 px-4 font-medium text-left whitespace-nowrap">
+                      {headers.map((header: string) => (
+                        <th key={header} className={`py-3 px-4 font-medium whitespace-nowrap ${bizHeaders.has(header) ? 'text-center' : 'text-left'}`}>
                           {header}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {(selectedUpload.parsed_data || []).slice(0, 100).map((row: Record<string, any>, idx: number) => (
+                    {data.slice(0, 100).map((row: Record<string, any>, idx: number) => (
                       <tr key={idx} className="hover:bg-gray-50">
-                        {(selectedUpload.column_headers || []).map((header: string) => (
-                          <td key={header} className="py-3 px-4 text-gray-600 max-w-[200px] truncate">
-                            {row[header] ?? "-"}
+                        {headers.map((header: string) => (
+                          <td key={header} className={`py-3 px-4 text-gray-600 max-w-[200px] truncate ${bizHeaders.has(header) ? 'text-center' : 'text-left'}`}>
+                            {bizHeaders.has(header)
+                              ? <BusinessNumber value={row[header] ?? ""} />
+                              : (row[header] ?? "-")}
                           </td>
                         ))}
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                  );
+                })()}
                 {(selectedUpload.parsed_data || []).length > 100 && (
                   <div className="p-4 text-center text-sm text-gray-500 bg-gray-50">
                     최대 100개사만 표시됩니다. (전체: {(selectedUpload.parsed_data || []).length}개사)
@@ -415,6 +454,8 @@ export default function ExcelManagementPage() {
           </div>
         </div>
       )}
+      <LoadingOverlay show={saving} message="저장 중..." />
+      <LoadingOverlay show={deleting} message="삭제 중..." />
     </div>
   );
 }

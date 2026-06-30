@@ -102,77 +102,77 @@ spacing:
   section-gap: 32px
 ---
 
-## Brand & Style
+## 브랜드 & 스타일
 
-The design system is engineered for a high-stakes B2B enterprise environment, specifically for the Gyeonggido Business & Science Accelerator. The brand personality is **authoritative, systematic, and precise**. It aims to evoke a sense of security and institutional trust, ensuring that users feel confident while navigating complex datasets to identify support duplicates.
+이 디자인 시스템은 높은 중요도를 가진 B2B 엔터프라이즈 환경, 특히 경기도경제과학진흥원(GBSA)을 위해 설계되었습니다. 브랜드 성격은 **권위적이고, 체계적이며, 정밀합니다**. 사용자가 복잡한 데이터셋을 탐색하여 중복 지원 여부를 식별하는 과정에서 신뢰감과 안정감을 느낄 수 있도록 하는 것이 목표입니다.
 
-The design style is **Corporate / Modern**, leaning into high-utility layouts and a structured information hierarchy. It prioritizes clarity over ornamentation, utilizing a clean grid, generous white space for data legibility, and a sophisticated color palette that reinforces the GBSA corporate identity. The interface remains functional and unobtrusive, allowing the critical status indicators (Risk, Warning, Safe) to command attention where necessary.
+디자인 스타일은 **코퍼레이트 / 모던** 스타일로, 높은 활용성의 레이아웃과 구조화된 정보 계층 구조에 중점을 둡니다. 장식보다 명확성을 우선시하며, 깔끔한 그리드, 데이터 가독성을 위한 여백, GBSA 기업 아이덴티티를 강화하는 정교한 색상 팔레트를 활용합니다. 인터페이스는 기능적이고 눈에 거슬리지 않게 유지되며, 중요한 상태 표시(위험, 경고, 안전)가 필요할 때 주목을 받을 수 있도록 합니다.
 
-## Colors
+## 색상
 
-This design system utilizes a structured hierarchy of color to guide the user's eye through the audit process. 
+이 디자인 시스템은 구조화된 색상 계층을 사용하여 검증 과정에서 사용자의 시선을 안내합니다.
 
-- **Primary (GBSA Blue):** Used for primary actions, navigation accents, and progress indicators to reinforce the institutional brand.
-- **Secondary:** Applied to hover states and active interactive elements to provide clear visual feedback.
-- **Surface & Background:** A clean, neutral background (#F8F9FA) provides contrast for pure white (#FFFFFF) cards and panels, creating a clear "layered" depth.
-- **Semantic Palette:** This is the most critical layer for this system. 
-    - **Exact Match (Risk):** High-urgency Red for immediate attention.
-    - **Similar Match (Warning):** Orange for manual review required.
-    - **No Match (Safe):** Green for cleared applications.
+- **Primary (GBSA Blue):** 주요 액션, 네비게이션 강조, 진행 표시기에 사용되어 기관 브랜드를 강화합니다.
+- **Secondary:** 호버 상태와 활성 인터랙티브 요소에 적용되어 명확한 시각적 피드백을 제공합니다.
+- **Surface & Background:** 깔끔한 중성 배경(#F8F9FA)이 순백색(#FFFFFF) 카드와 패널에 대비를 제공하여 명확한 "계층적" 깊이감을 만듭니다.
+- **Semantic Palette:** 이 시스템에서 가장 중요한 계층입니다.
+    - **정확 일치 (위험):** 높은 긴급도의 빨간색으로 즉각적인 주의 환기.
+    - **유사 일치 (경고):** 주황색으로 수동 검토 필요 표시.
+    - **일치 없음 (안전):** 녹색으로 이상 없음 표시.
 
-## Typography
+## 타이포그래피
 
-The system uses **Inter** for its exceptional legibility in data-heavy environments and its neutral, professional tone. 
+이 시스템은 데이터 중심 환경에서 뛰어난 가독성과 중립적이고 전문적인 톤을 제공하는 **Inter**를 사용합니다.
 
-- **Hierarchy:** Bold weights are reserved for page headers and table titles. 
-- **Data Density:** `body-sm` and `mono-data` are the primary workhorses for the dashboard, allowing for high information density without sacrificing readability.
-- **Labels:** Uppercase styling is used sparingly for labels and category headers to provide structural distinction in the sidebar and table headers.
+- **계층 구조:** 굵은 두께는 페이지 헤더와 테이블 제목에 사용됩니다.
+- **데이터 밀도:** `body-sm`과 `mono-data`는 대시보드의 주요 워크호스로, 가독성을 희생하지 않으면서 높은 정보 밀도를 제공합니다.
+- **라벨:** 대문자 스타일은 사이드바와 테이블 헤더에서 구조적 구분을 제공하기 위해 라벨과 카테고리 헤더에 제한적으로 사용됩니다.
 
-## Layout & Spacing
+## 레이아웃 & 간격
 
-The design system employs a **Fluid Grid** model with fixed sidebar constraints. 
+디자인 시스템은 고정 사이드바 제약 조건을 가진 **유동 그리드(Fluid Grid)** 모델을 사용합니다.
 
-- **Sidebar:** A fixed 260px width ensures the navigation remains accessible at all times.
-- **Main Content:** A flexible 12-column grid that reflows based on screen width. 
-- **Data Tables:** These should utilize a horizontal scroll mechanism on smaller viewports rather than collapsing, to maintain row-level context for comparison.
-- **Spacing Rhythm:** Based on a 4px baseline. Components generally use 16px (4 units) or 24px (6 units) of internal padding to maintain a spacious, professional feel.
+- **사이드바:** 고정 260px 너비로 네비게이션이 항상 접근 가능하도록 합니다.
+- **메인 콘텐츠:** 화면 너비에 따라 재배치되는 유연한 12컬럼 그리드입니다.
+- **데이터 테이블:** 작은 뷰포트에서는 접힘 대신 수평 스크롤을 사용하여 비교를 위한 행 수준의 맥락을 유지해야 합니다.
+- **간격 리듬:** 4px 기준선을 기반으로 합니다. 컴포넌트는 일반적으로 16px(4단위) 또는 24px(6단위)의 내부 패딩을 사용하여 여유롭고 전문적인 느낌을 유지합니다.
 
-## Elevation & Depth
+## 입체감 & 깊이
 
-To maintain a clean, enterprise-grade look, the system uses **Tonal Layering** combined with **Ambient Shadows**.
+깔끔한 엔터프라이즈급 외관을 유지하기 위해 시스템은 **톤 레이어링(Tonal Layering)** 과 **앰비언트 섀도우(Ambient Shadows)** 를 결합하여 사용합니다.
 
-- **Level 0 (Background):** The base layer (#F8F9FA).
-- **Level 1 (Cards/Panels):** Pure white surfaces with a subtle, 4px blur shadow (6% opacity) to provide a gentle lift.
-- **Level 2 (Modals/Popovers):** Elevated with a more pronounced 12px blur shadow (10% opacity) and a 1px soft border (#E2E8F0) to ensure separation from the background content.
-- **Comparison Focus:** During comparison, the "active" or "highlighted" panel should use a 2px primary-colored border rather than a shadow to denote focus.
+- **Level 0 (배경):** 기본 레이어(#F8F9FA).
+- **Level 1 (카드/패널):** 4px 블러 섀도우(6% 불투명도)로 부드럽게 떠 있는 느낌을 주는 순백색 표면.
+- **Level 2 (모달/팝오버):** 12px 블러 섀도우(10% 불투명도)와 1px 소프트 테두리(#E2E8F0)로 배경 콘텐츠와의 분리를 확보.
+- **비교 강조:** 비교 중에는 "활성" 또는 "강조" 패널에 섀도우 대신 2px Primary 색상 테두리를 사용하여 포커스를 표시합니다.
 
-## Shapes
+## 형태
 
-The shape language is consistent with modern SaaS standards, using a **Rounded (8px)** base. This softens the industrial nature of the data without appearing overly casual.
+형태 언어는 **Rounded (8px)** 기본값을 사용하여 현대적인 SaaS 표준과 일관성을 유지합니다. 이는 데이터의 산업적인 성격을 지나치게 캐주얼해지지 않으면서 부드럽게 만듭니다.
 
-- **Primary Components:** Buttons, input fields, and cards utilize the standard 8px radius.
-- **Status Badges:** Use a fully rounded (pill-shaped) radius to differentiate them as status indicators rather than interactive buttons.
-- **Data Tables:** The top corners of the table container should follow the 8px radius, while internal row cells remain sharp to maximize horizontal space.
+- **주요 컴포넌트:** 버튼, 입력 필드, 카드는 표준 8px 둥글기를 사용합니다.
+- **상태 배지:** 완전히 둥근(알약 모양) 둥글기를 사용하여 인터랙티브 버튼이 아닌 상태 표시기임을 구분합니다.
+- **데이터 테이블:** 테이블 컨테이너의 상단 모서리는 8px 둥글기를 따르지만, 내부 행 셀은 수평 공간을 최대화하기 위해 날카롭게 유지됩니다.
 
-## Components
+## 컴포넌트
 
-### Side Navigation
-The sidebar uses a dark-on-light or GBSA Blue theme. Active states are indicated by a 4px vertical bar on the left edge and a subtle blue background tint (Primary 10% opacity).
+### 사이드 네비게이션
+사이드바는 다크온라이트 또는 GBSA Blue 테마를 사용합니다. 활성 상태는 왼쪽 가장자리의 4px 수직 바와 미묘한 파란색 배경 틴트(Primary 10% 불투명도)로 표시됩니다.
 
-### Search Bar & Inputs
-Search bars feature GBSA Blue icons. Input fields use a 1px border (#CBD5E0) that transitions to GBSA Blue on focus.
+### 검색창 & 입력 필드
+검색창은 GBSA Blue 아이콘을 특징으로 합니다. 입력 필드는 1px 테두리(#CBD5E0)를 사용하며 포커스 시 GBSA Blue로 전환됩니다.
 
-### File Upload Zone
-The drag-and-drop area utilizes a dashed border in GBSA Blue with a light blue background tint. The icon and primary text are centered, providing clear affordance for interaction.
+### 파일 업로드 영역
+드래그 앤 드롭 영역은 GBSA Blue의 점선 테두리와 연한 파란색 배경 틴트를 사용합니다. 아이콘과 주요 텍스트는 중앙에 배치되어 상호작용을 명확히 유도합니다.
 
-### Data Tables
-Headers use a light gray background (#F1F5F9) with bolded labels. Rows should have a subtle hover effect (#F8F9FA). Comparison highlighting within cells uses a high-contrast background (e.g., light blue tint) to point out specific duplicate text strings.
+### 데이터 테이블
+헤더는 연한 회색 배경(#F1F5F9)과 굵은 라벨을 사용합니다. 행에는 미묘한 호버 효과(#F8F9FA)가 적용됩니다. 셀 내의 비교 강조 표시는 고대비 배경(예: 연한 파란색 틴트)을 사용하여 특정 중복 텍스트 문자열을 지적합니다.
 
-### Status Badges
-Badges use a "soft" color treatment: a background with 15% opacity of the status color and a 100% opacity foreground text color for maximum legibility. 
+### 상태 배지
+배지는 "소프트" 색상 처리를 사용합니다: 상태 색상의 15% 불투명도 배경과 100% 불투명도 전경 텍스트 색상으로 최대 가독성을 제공합니다.
 
-### Comparison Modals
-Split-pane view. Left side shows the "Current Application," right side shows the "Suspected Duplicate." Differences are highlighted using the primary blue color as a high-contrast text background.
+### 비교 모달
+분할 창 뷰입니다. 왼쪽은 "현재 신청", 오른쪽은 "의심 중복"을 표시합니다. 차이점은 고대비 텍스트 배경으로 Primary 파란색을 사용하여 강조 표시됩니다.
 
-### Progress Bars
-Progress bars use a thick 8px track in a light gray, with the active progress rendered in a solid GBSA Blue. For long-running search tasks, a pulsed animation is applied to the blue fill.
+### 진행바
+진행바는 연한 회색의 두꺼운 8px 트랙을 사용하며, 활성 진행률은 단색 GBSA Blue로 표시됩니다. 장기 실행 검색 작업의 경우 파란색 채움에 펄스(pulse) 애니메이션이 적용됩니다.

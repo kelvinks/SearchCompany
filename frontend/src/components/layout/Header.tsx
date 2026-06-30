@@ -9,21 +9,26 @@ export default function Header() {
   let title = "통합검색";
   let subtitle = "엑셀 파일 업로드 또는 단일 검색으로 중복 수혜 여부를 검증합니다.";
 
-  if (pathname === "/database") {
+  if (pathname === "/search" || pathname === "/") {
+    // default
+  } else if (pathname === "/database") {
     title = "등록기업";
     subtitle = "내부에 등록된 모든 기업 데이터베이스를 조회하고 관리합니다.";
   } else if (pathname === "/history") {
     title = "검색 기록";
     subtitle = "단일 조회 및 엑셀 대량 조회 이력을 건별로 확인합니다.";
-  } else if (pathname === "/verification-results") {
+  } else if (pathname === "/verify") {
     title = "검증결과";
     subtitle = "최근 통합검색을 통해 검증한 결과 목록입니다.";
-  } else if (pathname === "/excel-management") {
+  } else if (pathname === "/file") {
     title = "엑셀관리";
     subtitle = "업로드된 엑셀 파일과 파싱된 데이터를 조회하고 관리합니다.";
   } else if (pathname === "/font-test") {
     title = "폰트 테스트";
     subtitle = "한글 폰트 후보를 비교하고 선택합니다.";
+  } else if (pathname === "/loading-test") {
+    title = "로딩 테스트";
+    subtitle = "로딩 오버레이 스타일을 비교하고 선택합니다.";
   }
 
   return (

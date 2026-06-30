@@ -7,13 +7,25 @@
  *     "12345-678-90" → "123-45-67890"
  */
 export function formatBusinessNumber(value: string): string {
-  if (!value) return '';
-  // 숫자 이외 모든 문자(하이픈 포함)를 제거한 뒤 재포맷
-  const digits = value.replace(/\D/g, '');
+  const strVal = String(value ?? '');
+  if (!strVal) return '';
+  const digits = strVal.replace(/\D/g, '');
   if (digits.length === 10) {
     return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
   }
   return value;
+}
+
+/**
+ * 사업자등록번호에서 숫자 이외 모든 문자를 제거하고 최대 10자리만 반환합니다.
+ * 저장 시 사용합니다.
+ *
+ * 예) "123-45-67890" → "1234567890"
+ *     "12-34-567890" → "1234567890"
+ */
+export function normalizeBusinessNumber(value: string): string {
+  if (!value) return '';
+  return value.replace(/\D/g, '').slice(0, 10);
 }
 
 /**
