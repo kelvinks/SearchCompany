@@ -7,17 +7,18 @@ interface BusinessNumberProps {
 }
 
 export default function BusinessNumber({ value, className = "" }: BusinessNumberProps) {
-  if (!value || value === "undefined" || value === "null") return null;
+  const strVal = String(value ?? '');
+  if (!strVal || strVal === "undefined" || strVal === "null") return null;
 
-  const digits = value.replace(/\D/g, '');
+  const digits = strVal.replace(/\D/g, '');
   const isValid = digits.length === 10;
 
   if (isValid) {
-    return <span className={`font-mono ${className}`}>{formatBusinessNumber(value)}</span>;
+    return <span className={`font-mono ${className}`}>{formatBusinessNumber(strVal)}</span>;
   } else {
     return (
       <span className={`font-mono text-red-500 font-semibold ${className}`} title="사업자등록번호는 10자리여야 합니다.">
-        {value}
+        {strVal}
       </span>
     );
   }

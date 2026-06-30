@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import * as XLSX from "xlsx";
 import { Company } from "@/data/mockData";
+import { formatBusinessNumber } from "@/utils/format";
 import { supabase } from "./supabaseClient";
 
 export type ExcelUploadData = {
@@ -45,7 +46,7 @@ export const excelService = {
    * Parses an uploaded Excel file on the client side and extracts company details.
    * For encrypted files, calls server-side API to decrypt first.
    */
-  async parseUploadFile(file: File, password?: string): Promise<Partial<Company>[]> {
+  async parseUploadFile(file: File, password?: string): Promise<(Partial<Company> & { rawData?: Record<string, string> })[]> {
     console.log(`[ExcelService] parseUploadFile start: ${file.name} (${file.size} bytes), password=${password ? "****" : "none"}`);
 
     let arrayBuffer: ArrayBuffer;
@@ -116,7 +117,7 @@ export const excelService = {
   /**
    * Parses a workbook and extracts company details.
    */
-  parseWorkbook(workbook: XLSX.WorkBook): Partial<Company>[] {
+  parseWorkbook(workbook: XLSX.WorkBook): (Partial<Company> & { rawData?: Record<string, string> })[] {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
@@ -165,20 +166,28 @@ export const excelService = {
       );
     }
 
+    const normalizeHeader = (h: string) => h.replace(/\s+/g, '').toLowerCase();
+
     const getColIndex = (...names: string[]) => {
-      for (const name of names) {
-        const idx = headers.indexOf(name);
+      const normalizedHeaders = headers.map(normalizeHeader);
+      const normalizedNames = names.map(normalizeHeader);
+      for (const nn of normalizedNames) {
+        const idx = normalizedHeaders.findIndex(
+          (h) => h.includes(nn) || nn.includes(h)
+        );
         if (idx !== -1) return idx;
       }
       return -1;
     };
 
-    const companyNameIdx = getColIndex("기업명", "업체명", "회사명", "상호");
-    const brnIdx = getColIndex("사업자등록번호", "사업자번호", "등록번호");
-    const locationIdx = getColIndex("소재지", "주소", "위치");
-    const supportFieldIdx = getColIndex("지원분야", "신청분야", "사업분야");
-    const programNameIdx = getColIndex("지원사업명", "사업명", "지원사업");
-    const projectNameIdx = getColIndex("지원과제명", "과제명", "지원과제");
+    const companyNameIdx = getColIndex("기업명", "업체명", "회사명", "상호", "법인명", "사업자명");
+    const brnIdx = getColIndex("사업자등록번호", "사업자번호", "등록번호", "사업자등록", "법인번호");
+    const locationIdx = getColIndex("소재지", "주소", "위치", "사업장소재지", "본점소재지");
+    const supportFieldIdx = getColIndex("지원분야", "신청분야", "사업분야", "업종", "업태");
+    const programNameIdx = getColIndex("지원사업명", "사업명", "지원사업", "사업내용");
+    const projectNameIdx = getColIndex("지원과제명", "과제명", "지원과제", "과제번호");
+    const mainProductsIdx = getColIndex("주요제품", "제품명", "생산품", "주요생산품", "품목");
+    const appliedAmountIdx = getColIndex("신청금액", "요청금액", "신청액");
 
     // Find "연번"/"순번"/"번호" column for filtering non-data rows
     const seqNumIdx = getColIndex("연번", "순번", "번호");
@@ -221,7 +230,14 @@ export const excelService = {
       return String(val).trim();
     };
 
-    return dataRows.map((row, index) => ({
+    return dataRows.map((row, index) => {
+      // Build rawData with ALL columns preserved
+      const rawData: Record<string, string> = {};
+      headers.forEach((h, i) => {
+        if (h) rawData[h] = i < row.length ? cleanStr(row[i]) : "";
+      });
+
+      return {
       id: `upload-${Date.now()}-${index}`,
       companyName:
         companyNameIdx >= 0 ? cleanStr(row[companyNameIdx]) : "",
@@ -232,11 +248,17 @@ export const excelService = {
       location: locationIdx >= 0 ? cleanStr(row[locationIdx]) : "",
       supportField:
         supportFieldIdx >= 0 ? cleanStr(row[supportFieldIdx]) : "",
+      mainProducts:
+        mainProductsIdx >= 0 ? cleanStr(row[mainProductsIdx]) : "",
       appliedProgramName:
         programNameIdx >= 0 ? cleanStr(row[programNameIdx]) : "",
       appliedProjectName:
         projectNameIdx >= 0 ? cleanStr(row[projectNameIdx]) : "",
-    }));
+      appliedAmount:
+        appliedAmountIdx >= 0 ? cleanStr(row[appliedAmountIdx]) : "",
+      rawData,
+      };
+    });
   },
 
   /**
@@ -280,7 +302,7 @@ export const excelService = {
         matchStatus: matchStatusStr,
         matchScore: company.matchStatus === "NEW" ? "0%" : `${company.matchScore}%`,
         companyName: company.companyName,
-        businessNumber: company.businessNumber,
+        businessNumber: formatBusinessNumber(company.businessNumber),
         location: company.location,
         supportField: company.supportField,
         appliedProgramName: company.appliedProgramName || "-",
@@ -585,6 +607,19 @@ export const excelService = {
       });
     }
 
+    // Detect business number column and normalize its values to digits-only
+    const bizCol = headers.find(
+      (h) => /사업자\s*(등록)?\s*번호/.test(h) || /등록번호/.test(h)
+    );
+    if (bizCol) {
+      data = data.map((row) => {
+        if (row[bizCol] !== null && row[bizCol] !== undefined) {
+          row[bizCol] = String(row[bizCol]).replace(/\D/g, '');
+        }
+        return row;
+      });
+    }
+
     return { headers, data, sheetName, title, description };
   },
 
@@ -602,6 +637,7 @@ export const excelService = {
     sheetName: string;
     title?: string;
     description?: string;
+    newFileUrl?: string;
   }> {
     console.log(`[ExcelService] reparseFileFromUrl start: ${url}`);
 
@@ -661,7 +697,14 @@ export const excelService = {
 
     const workbook = XLSX.read(bytes.buffer, { type: 'array' });
     console.log(`[ExcelService] reparseFileFromUrl – decrypted, sheets: ${workbook.SheetNames}`);
-    return this.parseRawWorkbook(workbook);
+
+    // Re-upload the decrypted version so future reparses don't need a password
+    const cleanName = this.cleanFileName(fileName);
+    const decryptedFile = new File([bytes], cleanName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const newFileUrl = await this.uploadFileToStorage(decryptedFile).catch(() => null);
+
+    const parsed = this.parseRawWorkbook(workbook);
+    return { ...parsed, newFileUrl: newFileUrl || undefined };
   },
 
   /**
@@ -693,5 +736,49 @@ export const excelService = {
       console.error(`[Storage] Upload error:`, err.message);
       return null;
     }
+  },
+
+  /**
+   * Decrypts an encrypted OLE2/OOXML file using the given password,
+   * returns a new File with decrypted content and a cleaned filename.
+   * If the file is not encrypted, returns the original file unchanged.
+   */
+  async decryptFile(file: File, password: string): Promise<File> {
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Quick check — if client-side parse succeeds, file is not encrypted
+    try {
+      XLSX.read(arrayBuffer, { type: "array" });
+      return file;
+    } catch {}
+
+    const base64 = btoa(
+      new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
+    );
+
+    const response = await fetch("/api/py-decrypt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: base64, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `복호화 실패 (${response.status})`);
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      throw new Error(result.error || "비밀번호 해제 실패");
+    }
+
+    const binaryStr = atob(result.data);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+
+    const cleanName = this.cleanFileName(file.name);
+    return new File([bytes], cleanName, { type: file.type });
   },
 };

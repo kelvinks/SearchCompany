@@ -7,8 +7,10 @@ import DeletedDBManageModal from "@/components/modal/DeletedDBManageModal";
 import { extractSiGun } from "@/utils/format";
 import BusinessNumber from "@/components/BusinessNumber";
 import NewCompanyModal from "@/components/modal/NewCompanyModal";
+import NewHistoryModal from "@/components/modal/NewHistoryModal";
 import { companyService } from "@/services/companyService";
 import { excelService } from "@/services/excelService";
+import LoadingOverlay from "@/components/LoadingOverlay";
 import { supabase } from "@/services/supabaseClient";
 
 export default function DatabasePage() {
@@ -18,11 +20,14 @@ export default function DatabasePage() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedDeletedCompany, setSelectedDeletedCompany] = useState<(Company & { deletedAt?: string }) | null>(null);
   const [isNewCompanyModalOpen, setIsNewCompanyModalOpen] = useState(false);
+  const [isNewHistoryModalOpen, setIsNewHistoryModalOpen] = useState(false);
   const [locationFilter, setLocationFilter] = useState("");
   const [fieldFilter, setFieldFilter] = useState("");
   
   const [isSuperUser, setIsSuperUser] = useState(false);
   const [activeTab, setActiveTab] = useState<"active" | "deleted">("active");
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const checkSuperUser = async () => {
@@ -46,6 +51,7 @@ export default function DatabasePage() {
 
   const handleExportAll = async () => {
     if (companies.length === 0) return;
+    setExporting(true);
     try {
       const blob = await excelService.exportReport(companies);
       const url = window.URL.createObjectURL(blob);
@@ -58,6 +64,8 @@ export default function DatabasePage() {
       document.body.removeChild(a);
     } catch (error) {
       console.error("Export all error:", error);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -135,15 +143,26 @@ export default function DatabasePage() {
             데이터 내보내기
           </button>
           {activeTab === "active" && (
-            <button 
-              onClick={() => setIsNewCompanyModalOpen(true)}
-              className="px-4 py-2 bg-[var(--color-gbsa-primary)] text-white rounded-lg shadow-sm hover:bg-[var(--color-gbsa-secondary)] font-medium flex items-center transition-colors"
-            >
-              <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              신규 기업 등록
-            </button>
+            <>
+              <button 
+                onClick={() => setIsNewHistoryModalOpen(true)}
+                className="px-4 py-2 bg-white border border-emerald-200 text-emerald-700 rounded-lg shadow-sm hover:bg-emerald-50 font-medium flex items-center transition-colors"
+              >
+                <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                신규 지원이력 등록
+              </button>
+              <button 
+                onClick={() => setIsNewCompanyModalOpen(true)}
+                className="px-4 py-2 bg-[var(--color-gbsa-primary)] text-white rounded-lg shadow-sm hover:bg-[var(--color-gbsa-secondary)] font-medium flex items-center transition-colors"
+              >
+                <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                신규 기업 등록
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -344,16 +363,43 @@ export default function DatabasePage() {
         <NewCompanyModal
           onClose={() => setIsNewCompanyModalOpen(false)}
           onAdd={async (newCompanyOrCompanies) => {
-            if (Array.isArray(newCompanyOrCompanies)) {
-              await companyService.addCompanies(newCompanyOrCompanies);
-            } else {
-              await companyService.addCompany(newCompanyOrCompanies);
+            setSaving(true);
+            try {
+              if (Array.isArray(newCompanyOrCompanies)) {
+                await companyService.addCompanies(newCompanyOrCompanies);
+              } else {
+                await companyService.addCompany(newCompanyOrCompanies);
+              }
+              await handleRefresh();
+              setIsNewCompanyModalOpen(false);
+            } finally {
+              setSaving(false);
             }
-            await handleRefresh();
-            setIsNewCompanyModalOpen(false);
           }}
         />
       )}
+
+      {/* New History Modal */}
+      {isNewHistoryModalOpen && (
+        <NewHistoryModal
+          onClose={() => setIsNewHistoryModalOpen(false)}
+          companies={companies}
+          onAddHistory={async (entries) => {
+            setSaving(true);
+            try {
+              for (const entry of entries) {
+                await companyService.addSupportHistory(entry.companyId, entry.history);
+              }
+              await handleRefresh();
+              setIsNewHistoryModalOpen(false);
+            } finally {
+              setSaving(false);
+            }
+          }}
+        />
+      )}
+      <LoadingOverlay show={saving} message="저장 중..." />
+      <LoadingOverlay show={exporting} message="내보내기 중..." />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Company, SupportHistory } from "@/data/mockData";
-import { extractSiGun } from "@/utils/format";
+import { extractSiGun, formatBusinessNumber } from "@/utils/format";
 
 // GBSA Core Support Program Keywords compiled from homepage business fields
 const GBSA_KEYWORDS = [
@@ -131,7 +131,7 @@ export const matchingService = {
             matchedDbCompany = dbCo;
             matchType = "FUZZY";
             matchScore = Math.max(50, 90 - distance * 15);
-            systemNoteDetail = `사업자등록번호 오타 의심 (입력: ${candidate.businessNumber} ↔ DB: ${dbCo.businessNumber}, 편집거리: ${distance}) 및 ${isNameMatch ? "기업명" : "소재지(시/군)"} 매칭 항목이 발견되었습니다.`;
+            systemNoteDetail = `사업자등록번호 오타 의심 (입력: ${formatBusinessNumber(candidate.businessNumber || "")} ↔ DB: ${formatBusinessNumber(dbCo.businessNumber || "")}, 편집거리: ${distance}) 및 ${isNameMatch ? "기업명" : "소재지(시/군)"} 매칭 항목이 발견되었습니다.`;
             break;
           }
         }

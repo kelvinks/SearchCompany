@@ -47,7 +47,7 @@
     * PostgreSQL 트리거(`trg_sync_support_history_brn_on_insert`)로 이력 INSERT/UPDATE 시 `companies.business_number`에서 자동 채움.
     * 기업의 사업자번호 변경 시 연결된 모든 이력의 `brn`도 자동 동기화하는 트리거(`trg_sync_support_history_brn_on_company_update`) 추가.
 
-## 6. 지원과제명 필드 추가 및 검색 우선순위 로직 개편 (현재)
+## 6. 지원과제명 필드 추가 및 검색 우선순위 로직 개편
 * **목표:** 지원 이력에 세부 과제명(`지원과제명`) 필드를 추가하고, 중복 수혜 키워드 검색 우선순위를 구조화.
 * **주요 내용:**
   * **DB 스키마 변경**: `support_histories` 테이블에 `project_name varchar(500)` 컬럼 추가 (`supabase_schema.sql` 반영, Supabase SQL Editor 실행 필요).
@@ -62,6 +62,92 @@
   * **UI 반영**: `DBManageModal.tsx`에 이력 등록/수정 폼과 테이블에 지원과제명 입력/표시 컬럼 추가. `HistoryModal.tsx`에 과제명 배지 표시 및 새 시그니처 적용.
   * **빌드 검증**: `npm run build` 타입 오류 0건 통과 확인.
 
+## 7. UI/UX 개선 및 검증결과 테이블 재구성
+* **검증결과 테이블 개편:**
+  * **번호 컬럼 추가** (역순 `w-28`)
+  * **사업자등록번호·소재지·지원분야** → `text-center` 정렬
+  * **지원사업명 + 지원과제명 병합** → `년도 지원사업명 (지원과제명)` + 비고 한 줄
+  * **지원금액 pill** 크기 증가 (`px-3 py-1 text-sm`)
+  * **"상태 (매칭도)"** → **"구분"** 으로 라벨 변경
+  * **"과거 누적 지원금액"** → **"지원금 총합"** 으로 라벨 변경
+* **등록기업 페이지 개편:**
+  * **사이드바/헤더** "기업DB관리" → "등록기업"
+  * **지원사업명 컬럼** — 2줄 포맷: `년도 지원사업명 (지원과제명)` / `비고: ...`
+  * **사업자번호 red pill** — 전년도 이후 포기/제외 이력이 있는 기업 표시
+* **DBManageModal (기업지원이력 팝업) 개편:**
+  * 여러 개 뱃지 → **단일 amber pill** (마지막 지원사업)
+  * **red pill** 추가 — 전년도 이후 포기/제외: `년도 사업명(과제명) 상태`
+  * 기업명 → `text-red-600` (최근 포기/제외 시)
+  * **유효 총 지원금액** pill에 `지원금총액` 라벨 포함
+  * **포기/제외 행**: 배경 `bg-gray-50` → `bg-red-50/60`, 포기는 `text-red-400`, 제외는 `text-orange-400`
+  * **포기 뱃지**: `bg-gray-100 text-gray-700` → `bg-red-100 text-red-700`
+  * **제외 뱃지**: `bg-red-100 text-red-700` → `bg-orange-100 text-orange-700`
+  * **테이블 컬럼 삭제 제거**, 우측 상단 `닫기` → `삭제` 버튼 교체
+  * **정렬 변경**: 지원사업명 좌측 정렬, 선정금액/지원금액 우측 정렬
+  * **고정 너비** (`table-fixed` + `colgroup`) 적용
+  * **버튼 아이콘** 추가 (취소 X, 저장 체크, 삭제 휴지통)
+  * **저장 시 전체화면 로딩 오버레이** 추가
+* **Header "통합검색"** 기본 타이틀로 변경
+
+## 8. 로딩 오버레이 시스템 구축
+* **`LoadingOverlay` 컴포넌트** 생성 (`components/LoadingOverlay.tsx`)
+  * 모던 스켈레톤 스타일: 상단 진행바 + 중앙 스피너 + 백그라운드 블러
+  * `show`와 `message` prop 지원
+* **전체 저장/검색/삭제/업로드 동작에 일괄 적용** (10개 파일):
+  * `page.tsx` (단일 검색), `NewCompanyModal.tsx`, `excel-management/page.tsx`, `database/page.tsx`
+  * `verification-results/page.tsx`, `history/page.tsx`, `DeletedDBManageModal.tsx`
+  * `EditCompanyModal.tsx`, `login/page.tsx`, `DBManageModal.tsx`
+* **로딩 테스트 페이지** (`loading-test/page.tsx`) 생성
+  * 10가지 로딩 스타일 미리보기
+  * 클릭 시 5초 전체화면 미리보기
+* **`animate-progress-bar`** 키프레임 애니메이션 `globals.css`에 추가
+* **사이드바**에 "로딩 테스트" 메뉴 추가 ("폰트 테스트" 아래)
+
+## 9. 라우트 구조 변경
+* `/` (루트) → **로그인 페이지**로 변경
+* `/login` → 로그인 페이지 (유지)
+* `/search` → **통합검색 (대시보드)** 페이지로 신규 생성
+* `(dashboard)/page.tsx` 삭제 → `(dashboard)/search/page.tsx`로 이동
+* 변경된 참조 일괄 수정: `proxy.ts`, `AuthProvider.tsx`, `Sidebar.tsx`, `Header.tsx`, `login/page.tsx`
+* **Route Group** `(dashboard)`은 Next.js 공식 문법이므로 유지하기로 결정
+
+---
+
+## 11. 신규지원이력등록 모달 및 사업자번호 포맷팅 표준화
+* **목표:** 기존 등록 기업에 지원이력을 추가하는 신규 모달을 만들고, 사업자등록번호의 DB 저장/화면 표시 규칙을 전면 표준화.
+* **주요 내용:**
+  * **`NewHistoryModal.tsx` 생성** (`components/modal/`):
+    * 단건 등록: 기업 검색 드롭다운 + 지원이력 폼 (년도, 지원사업명, 과제명, 상태, 선정금액, 지원금액, 비고)
+    * 엑셀 대량 업로드: 사업자등록번호로 기업 매칭 → 지원이력 일괄 추가, 결과 표시
+    * `history_registration_template.xlsx` 템플릿 파일 생성 (`public/templates/`)
+    * 상태는 년도와 동일한 폭으로 지원사업명 앞에 배치, 년도 폭 축소
+    * 선정금액/지원금액: 3자리 콤마 + `font-mono`, 원 표시 제거
+    * 기업검색/년도 라벨에 SVG 아이콘 적용
+  * **사업자번호 포맷팅 표준화:**
+    * `formatBusinessNumber()` — 화면 출력 시 `123-45-67890` 형태로 표시
+    * `normalizeBusinessNumber()` — DB 저장 시 10자리 숫자만 보관
+    * `NewCompanyModal`, `EditCompanyModal`, `NewHistoryModal`, `matchingService`, `excelService` 전체 적용 완료
+  * **입력 필드 높이 통일:** `NewCompanyModal` + `NewHistoryModal` 모든 `<input>`, `<select>`에 `h-10` 적용
+  * **로딩 오버레이 시스템 개선:**
+    * `overlayStyles.tsx` 공유 파일 생성 — 10가지 로딩 스타일 정의
+    * `LoadingOverlay.tsx` → `localStorage`에서 선택된 스타일 읽어 렌더링
+    * `loading-test/page.tsx` → `localStorage` 읽기/쓰기, 기본값 글래스모피즘
+* **결과:** 사업자번호는 DB에 10자리 숫자로만 저장되고 화면에서는 항상 포맷팅되어 표시됨. 로딩 스타일을 사용자가 선택/기억 가능.
+
+---
+
+## 10. 엑셀 암호화 파일 복호화 및 다시 읽기 기능 구현
+* **목표:** Vercel에만 구현되어 있던 엑셀 암호화 파일(.xlsx with password) 복호화 기능을 로컬 개발 환경에서도 동작하도록 포팅하고, 복호화 → Blob 재업로드 → 다시 읽기 전 과정을 개선.
+* **주요 내용:**
+  * **`/api/py-decrypt` API 라우트 구현** (`frontend/src/app/api/py-decrypt/route.ts`): Next.js Route Handler로 Python `msoffcrypto-tool`을 `execSync`로 호출. 파일(base64) + 비밀번호를 받아 복호화 후 base64 JSON 반환. `maxBuffer`를 50MB로 설정. Python 경로: `~/.pyenv/versions/3.12.7/bin/python`
+  * **`api/py-decrypt.py` 전면 재작성**: Vercel Serverless HTTP handler + Local CLI 모드 공존 (argparse 분기). `decrypt_bytes()` 공통 코어. 예외 처리 개선 (`InvalidPasswordError` → `DecryptionError`/`InvalidKeyError`). `stdout.flush()` 추가.
+  * **Python 3.14.0a1 → 3.12.7 전환**: Python 3.14 알파 + `cryptography` SIGSEGV 문제 해결.
+  * **`msoffcrypto-tool` 5.4.2 다운그레이드**: Vercel 환경과 일치하도록 6.0.0 → 5.4.2.
+  * **라우트명 변경**: `/verification-results` → `/verify`, `/excel-management` → `/file` (디렉토리 rename + Sidebar/Header/search page 참조 업데이트).
+  * **복호화 파일 저장 로직**: `excelService.decryptFile()` — 복호화된 `File` 반환. `search/page.tsx`에서 `workingPassword` 추적 + 복호화 파일 Blob 업로드. `reparseFileFromUrl`에 복호화 → 재업로드 자동화.
+  * **Blob 업로드 문제 해결**: `.env.local`에 `BLOB_READ_WRITE_TOKEN` 누락 → 사용자 발급 후 추가 완료. `companyService.updateExcelUpload()`에 `fileUrl` 필드 지원.
+* **결과:** 암호화된 엑셀 파일도 정상 업로드/복호화/다시 읽기 가능.
+
 ---
 
 ## 💡 AI (Antigravity) 메모리 핵심 요약
@@ -72,4 +158,13 @@
 5. **검색 로그 보존성 완성**: 단건 검색(`MANUAL`) 및 벌크 검색(`BATCH`) 실행 시, 당시 매칭된 세부 기업 정보와 사업자번호 전체가 `search_logs.additional_data` 에 직렬화되어 온전히 백업 및 보존됩니다. 따라서 실시간 DB의 변동과 관계없이 검증 당시의 기록(Audit Trail)을 안정적으로 복원하여 열어볼 수 있습니다.
 6. **디자인 테마:** 전문성, 신뢰성, 모던함. (경기도경제과학진흥원 GBSA 공식 규격 및 HSL 컬러 사용)
 7. **연동 및 확장성:** 비동기 서비스 레이어로 구조화되어 있어 향후 Supabase의 인증(Auth) 혹은 API Gateway 도입 시 프론트엔드 코드의 변경을 최소화하고 안정적으로 확장 가능합니다.
+8. **포기/제외 행 스타일:** 배경은 연한 빨강(`bg-red-50/60`), 포기 텍스트는 빨강(`text-red-400`), 제외 텍스트는 주황(`text-orange-400`)으로 구분.
+9. **로딩 오버레이:** 중앙 집중식 `LoadingOverlay` 컴포넌트로 모든 async 저장/검색/삭제 동작을 일관된 UI로 처리.
+10. **라우트 구조:** `/`는 로그인, `/search`는 통합검색 대시보드, `/login`도 로그인 (두 경로 모두 로그인 페이지로 동작).
+11. **Python 복호화:** `execSync`로 `~/.pyenv/versions/3.12.7/bin/python` + `msoffcrypto-tool==5.4.2` 호출. SIGSEGV 방지를 위해 Python 3.12.7 고정.
+12. **Vercel Blob 인증:** `.env.local`에 `BLOB_READ_WRITE_TOKEN` 필요. OIDC만으로는 development 환경에서 인증 불가.
+13. **다시 읽기(Reparse) 플로우:** 파일 URL → 다운로드 → client-side `XLSX.read()` 시도 → 실패 시 비밀번호 추출 → `/api/py-decrypt` → 복호화 성공 시 Blob 재업로드 → 재시도. 복호화된 파일은 Blob에 저장되어 추후 비밀번호 불필요.
+14. **사업자등록번호 저장/표시 규칙:** DB 저장은 `normalizeBusinessNumber()`로 10자리 숫자만, 화면 출력은 `formatBusinessNumber()`로 `123-45-67890` 형태로 표시.
+15. **로딩 오버레이 선택 시스템:** `overlayStyles.tsx`에서 공유 스타일 정의, `localStorage`로 선택 유지, 기본값은 글래스모피즘 (id: 2).
+16. **신규지원이력등록 모달:** `NewHistoryModal.tsx` — 단건(기업 검색 + 지원이력 폼) + 엑셀 일괄 업로드(사업자등록번호 기준 매칭) 지원.
 

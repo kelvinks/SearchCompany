@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Company } from "@/data/mockData";
 import { excelService } from "@/services/excelService";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import { normalizeBusinessNumber, formatBusinessNumber } from "@/utils/format";
 
 interface NewCompanyModalProps {
   onClose: () => void;
@@ -51,18 +53,23 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
     });
   }, [address]);
 
+  // Single Registration Saving State
+  const [saving, setSaving] = useState(false);
+
   // Bulk Registration State
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSingleSubmit = (e: React.FormEvent) => {
+  const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!companyName || !businessNumber) return;
+    setSaving(true);
+    try {
 
     const newCompany: Company = {
       id: `c-${Date.now()}`,
       companyName,
-      businessNumber,
+      businessNumber: normalizeBusinessNumber(businessNumber),
       location,
       supportField,
       mainProducts,
@@ -72,6 +79,9 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
     };
 
     onAdd(newCompany);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleBulkUpload = async (file: File) => {
@@ -100,7 +110,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
         matchStatus: "NEW" as const,
         matchScore: 0,
         histories: [],
-      })) as Company[];
+      })) as unknown as Company[];
       
       onAdd(companiesToAdd);
     } catch (error) {
@@ -166,7 +176,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                     onChange={(e) => setCompanyName(e.target.value)} 
                     required 
                     placeholder="예: (주)테스트기업" 
-                    className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                    className="w-full pl-10 pr-4 h-10 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
                   />
                 </div>
               </div>
@@ -179,11 +189,11 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                   </span>
                   <input 
                     type="text" 
-                    value={businessNumber} 
-                    onChange={(e) => setBusinessNumber(e.target.value)} 
+                    value={formatBusinessNumber(businessNumber)} 
+                    onChange={(e) => setBusinessNumber(e.target.value.replace(/\D/g, ''))} 
                     required 
                     placeholder="예: 123-45-67890" 
-                    className={`w-full pl-10 pr-4 py-2.5 text-sm font-mono rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
+                    className={`w-full pl-10 pr-4 h-10 text-sm font-mono rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all ${
                       businessNumber && businessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
                     }`}
                   />
@@ -205,7 +215,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="예: 경기도 수원시 영통구 세무서로 123"
-                    className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+                    className="w-full pl-10 pr-4 h-10 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -224,7 +234,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                       value={supportField} 
                       onChange={(e) => setSupportField(e.target.value)} 
                       placeholder="예: SW 개발" 
-                      className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                      className="w-full pl-10 pr-4 h-10 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
                     />
                   </div>
                 </div>
@@ -239,7 +249,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                       value={mainProducts} 
                       onChange={(e) => setMainProducts(e.target.value)} 
                       placeholder="예: AI 솔루션" 
-                      className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
+                      className="w-full pl-10 pr-4 h-10 text-sm rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all" 
                     />
                   </div>
                 </div>
@@ -311,6 +321,9 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
             </button>
           </div>
         )}
+
+        {/* Saving Overlay */}
+        <LoadingOverlay show={saving} message="등록 중..." />
 
         {/* Uploading Overlay */}
         {isUploading && (

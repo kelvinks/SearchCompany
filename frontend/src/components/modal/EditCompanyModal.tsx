@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Company } from '@/data/mockData';
 import { companyService } from '@/services/companyService';
+import LoadingOverlay from '@/components/LoadingOverlay';
+import { normalizeBusinessNumber, formatBusinessNumber } from '@/utils/format';
 
 interface EditCompanyModalProps {
   company: Company;
@@ -20,7 +22,7 @@ export default function EditCompanyModal({ company, onClose, onUpdate }: EditCom
     try {
       const updated = await companyService.updateCompany(company.id, {
         companyName,
-        businessNumber,
+        businessNumber: normalizeBusinessNumber(businessNumber),
         location,
         supportField,
       });
@@ -67,8 +69,8 @@ export default function EditCompanyModal({ company, onClose, onUpdate }: EditCom
               className={`mt-1 block w-full font-mono rounded-md border-gray-300 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 ${
                 businessNumber && businessNumber.replace(/\D/g, '').length !== 10 ? 'text-red-500 font-semibold border-red-300 focus:border-red-500 focus:ring-red-100' : ''
               }`}
-              value={businessNumber}
-              onChange={(e) => setBusinessNumber(e.target.value)}
+              value={formatBusinessNumber(businessNumber)}
+              onChange={(e) => setBusinessNumber(e.target.value.replace(/\D/g, ''))}
             />
             {businessNumber && businessNumber.replace(/\D/g, '').length !== 10 && (
               <p className="text-xs text-red-500 mt-1">사업자등록번호는 10자리 숫자여야 합니다.</p>
@@ -109,6 +111,7 @@ export default function EditCompanyModal({ company, onClose, onUpdate }: EditCom
             {saving ? '저장 중...' : '저장'}
           </button>
         </div>
+        <LoadingOverlay show={saving} />
       </div>
     </div>
   );
