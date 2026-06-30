@@ -56,7 +56,15 @@ export const excelService = {
       arrayBuffer = await file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer, { type: "array" });
       console.log(`[ExcelService] Client-side parse succeeded, sheets: ${workbook.SheetNames}`);
-      return this.parseWorkbook(workbook);
+      const result = this.parseWorkbook(workbook);
+
+      // If XLSX parse returns empty, try ExcelJS as fallback
+      if (result.length === 0) {
+        console.log(`[ExcelService] XLSX parse returned 0 companies, trying ExcelJS fallback...`);
+        return this.parseBufferWithExcelJS(arrayBuffer);
+      }
+
+      return result;
     } catch (err: any) {
       const errMsg = err?.message || String(err);
       console.warn(`[ExcelService] Client-side parse failed: ${errMsg}`);
@@ -122,7 +130,7 @@ export const excelService = {
     const worksheet = workbook.Sheets[sheetName];
 
     // Read all rows as arrays (header: 1)
-    const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
     if (rows.length === 0) return [];
 
@@ -143,122 +151,188 @@ export const excelService = {
     if (maxCols === 0) return [];
 
     // Determine the actual column range of the header row
-    // (maxCols only counts non-empty cells; a leading empty cell shifts indices)
     let lastHeaderCol = -1;
-    for (let j = 0; j < rows[headerRowIdx].length; j++) {
+    const headerRow = rows[headerRowIdx];
+    for (let j = 0; j < headerRow.length; j++) {
       if (
-        rows[headerRowIdx][j] !== undefined &&
-        rows[headerRowIdx][j] !== null &&
-        String(rows[headerRowIdx][j]).trim() !== ''
+        headerRow[j] !== undefined &&
+        headerRow[j] !== null &&
+        String(headerRow[j]).trim() !== ''
       ) {
         lastHeaderCol = j;
       }
     }
     const headerColCount = lastHeaderCol + 1;
 
-    // Map column index by known field names from the detected header row
-    const headers: string[] = [];
+    // Build normalized header names for matching
+    const normalizeHeader = (h: string) => h.replace(/\s+/g, '').toLowerCase();
+
+    const rawHeaders: string[] = [];
     for (let j = 0; j < headerColCount; j++) {
-      headers.push(
-        rows[headerRowIdx][j] !== undefined
-          ? String(rows[headerRowIdx][j]).trim()
+      rawHeaders.push(
+        headerRow[j] !== undefined && headerRow[j] !== null
+          ? String(headerRow[j]).trim()
           : ''
       );
     }
-
-    const normalizeHeader = (h: string) => h.replace(/\s+/g, '').toLowerCase();
+    const normalizedHeaders = rawHeaders.map(normalizeHeader);
 
     const getColIndex = (...names: string[]) => {
-      const normalizedHeaders = headers.map(normalizeHeader);
-      const normalizedNames = names.map(normalizeHeader);
-      for (const nn of normalizedNames) {
-        const idx = normalizedHeaders.findIndex(
-          (h) => h.includes(nn) || nn.includes(h)
-        );
+      const nns = names.map(normalizeHeader);
+      for (const nn of nns) {
+        const idx = normalizedHeaders.findIndex((h) => h.includes(nn) || nn.includes(h));
         if (idx !== -1) return idx;
       }
       return -1;
     };
 
-    const companyNameIdx = getColIndex("기업명", "업체명", "회사명", "상호", "법인명", "사업자명");
-    const brnIdx = getColIndex("사업자등록번호", "사업자번호", "등록번호", "사업자등록", "법인번호");
-    const locationIdx = getColIndex("소재지", "주소", "위치", "사업장소재지", "본점소재지");
-    const supportFieldIdx = getColIndex("지원분야", "신청분야", "사업분야", "업종", "업태");
-    const programNameIdx = getColIndex("지원사업명", "사업명", "지원사업", "사업내용");
-    const projectNameIdx = getColIndex("지원과제명", "과제명", "지원과제", "과제번호");
-    const mainProductsIdx = getColIndex("주요제품", "제품명", "생산품", "주요생산품", "품목");
-    const appliedAmountIdx = getColIndex("신청금액", "요청금액", "신청액");
+    const companyNameIdx = getColIndex(
+      "기업명", "업체명", "회사명", "상호", "법인명", "사업자명",
+      "companyname", "company_name", "company name", "name", "company"
+    );
+    const brnIdx = getColIndex(
+      "사업자등록번호", "사업자번호", "등록번호", "사업자등록", "법인번호",
+      "businessnumber", "business_number", "business number",
+      "brn", "bizno", "biz_no", "biznum", "reg_no", "registrationno"
+    );
+    const locationIdx = getColIndex(
+      "소재지", "주소", "위치", "사업장소재지", "본점소재지",
+      "address", "location", "addr", "sijuso"
+    );
+    const supportFieldIdx = getColIndex(
+      "지원분야", "신청분야", "사업분야", "업종", "업태", "업종코드",
+      "supportfield", "support_field", "field", "category", "businessfield"
+    );
+    const programNameIdx = getColIndex(
+      "지원사업명", "사업명", "지원사업", "사업내용",
+      "programname", "program_name", "program"
+    );
+    const projectNameIdx = getColIndex(
+      "지원과제명", "과제명", "지원과제", "과제번호",
+      "projectname", "project_name", "project", "task"
+    );
+    const mainProductsIdx = getColIndex(
+      "주요제품", "제품명", "생산품", "주요생산품", "품목",
+      "mainproducts", "main_products", "products", "product"
+    );
+    const appliedAmountIdx = getColIndex(
+      "신청금액", "요청금액", "신청액",
+      "appliedamount", "applied_amount", "amount", "requestedamount"
+    );
+    const seqNumIdx = getColIndex("연번", "순번", "번호", "no", "seq", "number");
 
-    // Find "연번"/"순번"/"번호" column for filtering non-data rows
-    const seqNumIdx = getColIndex("연번", "순번", "번호");
+    const cleanStr = (val: unknown): string => {
+      if (val === undefined || val === null) return "";
+      return String(val).trim();
+    };
 
-    // Data rows after the header row: filter out garbage and summary rows
+    // Data rows after the header row: filter out garbage rows
     const dataRows = rows.slice(headerRowIdx + 1).filter((row) => {
       if (!row) return false;
 
-      // At least 2 meaningful company fields must be present
       const filledFields = [
-        seqNumIdx >= 0 ? row[seqNumIdx] : undefined,
-        companyNameIdx >= 0 ? row[companyNameIdx] : undefined,
-        brnIdx >= 0 ? row[brnIdx] : undefined,
-        locationIdx >= 0 ? row[locationIdx] : undefined,
-      ].filter(
-        (v) => v !== undefined && v !== null && String(v).trim() !== ''
-      ).length;
-      if (filledFields < 2) return false;
+        companyNameIdx >= 0 && cleanStr(row[companyNameIdx]) ? row[companyNameIdx] : undefined,
+        brnIdx >= 0 && cleanStr(row[brnIdx]) ? row[brnIdx] : undefined,
+        locationIdx >= 0 && cleanStr(row[locationIdx]) ? row[locationIdx] : undefined,
+      ].filter((v) => v !== undefined).length;
 
-      // If "연번"/"순번"/"번호" has a value, it must be numeric
+      if (filledFields < 1) return false;
+
       if (seqNumIdx >= 0) {
-        const seqVal = row[seqNumIdx];
-        if (
-          seqVal !== undefined &&
-          seqVal !== null &&
-          String(seqVal).trim() !== ''
-        ) {
-          const strVal = String(seqVal).trim();
-          if (isNaN(Number(strVal.replace(/,/g, '')))) {
-            return false;
-          }
+        const seqVal = cleanStr(row[seqNumIdx]);
+        if (seqVal && isNaN(Number(seqVal.replace(/,/g, '')))) {
+          return false;
         }
       }
 
       return true;
     });
 
-    const cleanStr = (val: unknown): string => {
-      if (!val) return "";
-      return String(val).trim();
-    };
-
     return dataRows.map((row, index) => {
-      // Build rawData with ALL columns preserved
       const rawData: Record<string, string> = {};
-      headers.forEach((h, i) => {
+      rawHeaders.forEach((h, i) => {
         if (h) rawData[h] = i < row.length ? cleanStr(row[i]) : "";
       });
 
       return {
-      id: `upload-${Date.now()}-${index}`,
-      companyName:
-        companyNameIdx >= 0 ? cleanStr(row[companyNameIdx]) : "",
-      businessNumber:
-        brnIdx >= 0
-          ? cleanStr(row[brnIdx]).replace(/[^0-9]/g, "")
-          : "",
-      location: locationIdx >= 0 ? cleanStr(row[locationIdx]) : "",
-      supportField:
-        supportFieldIdx >= 0 ? cleanStr(row[supportFieldIdx]) : "",
-      mainProducts:
-        mainProductsIdx >= 0 ? cleanStr(row[mainProductsIdx]) : "",
-      appliedProgramName:
-        programNameIdx >= 0 ? cleanStr(row[programNameIdx]) : "",
-      appliedProjectName:
-        projectNameIdx >= 0 ? cleanStr(row[projectNameIdx]) : "",
-      appliedAmount:
-        appliedAmountIdx >= 0 ? cleanStr(row[appliedAmountIdx]) : "",
-      rawData,
+        id: `upload-${Date.now()}-${index}`,
+        companyName: companyNameIdx >= 0 ? cleanStr(row[companyNameIdx]) : "",
+        businessNumber:
+          brnIdx >= 0
+            ? cleanStr(row[brnIdx]).replace(/[^0-9]/g, "")
+            : "",
+        location: locationIdx >= 0 ? cleanStr(row[locationIdx]) : "",
+        supportField: supportFieldIdx >= 0 ? cleanStr(row[supportFieldIdx]) : "",
+        mainProducts: mainProductsIdx >= 0 ? cleanStr(row[mainProductsIdx]) : "",
+        appliedProgramName: programNameIdx >= 0 ? cleanStr(row[programNameIdx]) : "",
+        appliedProjectName: projectNameIdx >= 0 ? cleanStr(row[projectNameIdx]) : "",
+        appliedAmount: appliedAmountIdx >= 0 ? cleanStr(row[appliedAmountIdx]) : "",
+        rawData,
       };
     });
+  },
+
+  /**
+   * Parses an Excel workbook buffer using ExcelJS as a robust fallback.
+   */
+  async parseBufferWithExcelJS(buffer: ArrayBuffer): Promise<(Partial<Company> & { rawData?: Record<string, string> })[]> {
+    const Workbook = (await import("exceljs")).Workbook;
+    const workbook = new Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
+    if (!worksheet) return [];
+
+    const rows: any[][] = [];
+    worksheet.eachRow((row) => {
+      const vals: any[] = [];
+      row.eachCell((cell) => {
+        vals.push(cell.value);
+      });
+      rows.push(vals);
+    });
+
+    if (rows.length === 0) return [];
+
+    const normalizeHeader = (h: string) => String(h).replace(/\s+/g, '').toLowerCase();
+    const getColIndex = (...names: string[]) => {
+      const nns = names.map(normalizeHeader);
+      const headerRow = rows[0].map(normalizeHeader);
+      for (const nn of nns) {
+        const idx = headerRow.findIndex((h) => h.includes(nn) || nn.includes(h));
+        if (idx !== -1) return idx;
+      }
+      return -1;
+    };
+
+    const companyNameIdx = getColIndex("기업명", "업체명", "회사명", "상호", "법인명", "사업자명");
+    const brnIdx = getColIndex("사업자등록번호", "사업자번호", "등록번호", "사업자등록", "법인번호", "brn", "bizno");
+    const locationIdx = getColIndex("소재지", "주소", "위치", "사업장소재지", "본점소재지", "address");
+    const supportFieldIdx = getColIndex("지원분야", "신청분야", "사업분야", "업종", "업태");
+    const mainProductsIdx = getColIndex("주요제품", "제품명", "생산품", "주요생산품", "품목");
+
+    const cleanStr = (val: unknown): string => {
+      if (val === undefined || val === null) return "";
+      return String(val).trim();
+    };
+
+    const dataRows = rows.slice(1).filter((row) => {
+      if (!row || row.length === 0) return false;
+      const filled = [
+        companyNameIdx >= 0 ? cleanStr(row[companyNameIdx]) : "",
+        brnIdx >= 0 ? cleanStr(row[brnIdx]) : "",
+        locationIdx >= 0 ? cleanStr(row[locationIdx]) : "",
+      ].filter(Boolean).length;
+      return filled >= 1;
+    });
+
+    return dataRows.map((row, index) => ({
+      id: `upload-${Date.now()}-${index}`,
+      companyName: companyNameIdx >= 0 ? cleanStr(row[companyNameIdx]) : "",
+      businessNumber: brnIdx >= 0 ? cleanStr(row[brnIdx]).replace(/[^0-9]/g, "") : "",
+      location: locationIdx >= 0 ? cleanStr(row[locationIdx]) : "",
+      supportField: supportFieldIdx >= 0 ? cleanStr(row[supportFieldIdx]) : "",
+      mainProducts: mainProductsIdx >= 0 ? cleanStr(row[mainProductsIdx]) : "",
+    }));
   },
 
   /**
