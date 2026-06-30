@@ -39,6 +39,9 @@ yarn-error.log*
 # scripts (hardcoded credentials)
 /scripts/
 
+# project-level secrets
+/.secret/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
