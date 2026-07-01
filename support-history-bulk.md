@@ -8,12 +8,22 @@
 |--------|------|------|------|
 | 사업자등록번호 | string | Y | 기업 매칭용 |
 | 연도 | string | Y | 4자리 (예: "2024") |
-| 지원사업명 | string | Y | |
+| 지원사업명 | string | Y | **DB `excel_uploads.program_name`에 저장** |
 | 지원과제명 | string | N | |
 | 상태 | string | Y | "선정", "완료", "포기", "제외" |
 | 선정금액 | number | N | default: 0 |
 | 지원금액 | number | N | default: 0 |
 | 비고 | string | N | |
+
+## 대량검색 필수 입력값
+대량검색 시 다음 필드는 반드시 입력해야 합니다 (라벨에 `*` 표시):
+| 입력값 | 비고 |
+|--------|------|
+| 지원사업명(*) | DB `excel_uploads.program_name`에 저장 |
+| 요청기관(*) | |
+| 문서번호(*) | |
+| 접수일(*) | |
+| 요청일(*) | |
 
 ## 템플릿 파일
 `/public/templates/history_registration_template.xlsx`

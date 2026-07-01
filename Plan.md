@@ -7,7 +7,7 @@
 * **주요 기능**:
   1. **내부 데이터 관리**: 기업 정보 단건 및 엑셀(XLSX) 대량 등록, 수정, 삭제, 기업 DB 관리 대시보드 제공
   2. **과거 지원 이력 관리 (NEW)**: 각 기업이 과거에 어떤 사업으로 얼마의 지원을 받았는지 개별 이력 관리 및 상태(선정/완료/포기/제외) 관리
-  3. **중복 조회 (엑셀 업로드)**: 엑셀 파일을 업로드(요청기관, 문서번호, 요청내용 포함)하여 내부 데이터와 대조
+  3. **중복 조회 (엑셀 업로드)**: 엑셀 파일을 업로드(지원사업명, 요청기관, 문서번호, 접수일, 요청일 포함)하여 내부 데이터와 대조
    4. **검색 로직 (개편)**: 
      * **사업자등록번호 기반 일치 판별**:
        * **Exact Match (1순위)**: 입력받은 사업자등록번호가 내부 DB의 사업자번호와 정확히 일치하면 무조건 대조 및 확인 필요(EXACT) 대상으로 분류합니다.
@@ -47,6 +47,21 @@
 * `년도` (Year) - 지원 연도
 * `비고` (Notes) - 기타 특이사항 (포기/제외 사유 등). **중복 키워드 검색 3순위 대상**
 
+### C. 엑셀 업로드 관리 테이블 (Excel_uploads)
+* `id` (UUID) - 고유키
+* `file_name` (varchar) - 업로드된 파일명
+* `file_size` (bigint) - 파일 크기
+* `file_url` (text) - Vercel Blob Storage URL
+* `sheet_name` (varchar) - 시트명
+* `total_rows` (int) - 전체 행 수
+* `parsed_data` (jsonb) - 파싱된 데이터
+* `program_name` (varchar) - **[NEW]** 대량검색 시 지원사업명 (사용자가 입력한 필수값)
+* `org_name` (varchar) - 요청기관
+* `doc_num` (varchar) - 문서번호
+* `send_date` (varchar) - 접수일
+* `request_date` (varchar) - 요청일
+* `created_at` (timestamptz) - 생성시간
+
 ## 3. 기술 스택 및 배포 방식 (Tech 스택 & Deployment)
 GitHub Pages와 Vercel 환경을 모두 지원할 수 있는 하이브리드 아키텍처를 구성합니다.
 
@@ -67,30 +82,42 @@ GitHub Pages와 Vercel 환경을 모두 지원할 수 있는 하이브리드 아
 1. **프로젝트 초기화 및 저장소 세팅 (완료)**
    * Next.js + Tailwind CSS v4 환경 구축, Turbopack 컴파일, ESLint 정적 분석 무오류 통과.
 2. **Supabase 하이브리드 데이터베이스 연동 (완료)**
-   * `companies`, `support_histories`, `search_logs` 테이블 구조 정의.
+   * `companies`, `support_histories`, `search_logs`, `excel_uploads` 테이블 구조 정의.
+   * `excel_uploads` 테이블에 `program_name` 컬럼 추가 (대량검색 지원사업명 저장).
    * 원격 PostgreSQL 연동 모듈(`supabaseClient`)과 매핑 로직을 통한 완전한 비동기식 CRUD 지원.
 3. **UI/UX 대시보드 및 상세 비교 뷰 개발 (완료)**
    * 경기도경제과학진흥원(GBSA) 브랜드 정체성 테마 적용.
    * 파일 드롭존을 활용한 대량 업로드 및 실시간 검증 결과 테이블 연동.
    * 과거 누적 지원금 계산(포기/제외 금액 차감 및 취소선 효과) 및 상세 비교 모달(`HistoryModal.tsx`) 연동.
+   * 검증결과 내부DB 매칭 정보 컬럼 추가 (내부DB 기업명/소재지/지원분야).
 4. **핵심 데이터 편집 및 이력 관리 기능 고도화 (완료 - 추가 반영)**
    * DB 관리 화면(`DBManageModal.tsx`) 내에서 개별 과거 이력 항목의 **인라인 수정(Edit)** 및 **추가/삭제** 기능 구현.
    * DB 내 기업 정보 자체(기업명, 주소, 대표자, 주요제품, 지원분야)를 편집하거나 기업 자체를 삭제할 수 있는 기능 추가.
    * 신규 기업 등록 시 전체 주소 입력값에서 시/군명을 자동 추출하는 주소 파서 연동.
+5. **검색 UI 통일 및 조회요청기업 연동 (완료)**
+   * 단일검색/대량검색 동일 타이틀(아이콘+타이틀+설명), 라벨, 입력필드 스타일 적용.
+   * 대량검색 지원사업명 필수 검증 + DB `program_name` 저장.
+   * Header `/request` 경로 추가 (조회요청기업).
+   * 등록기업 "신규 지원이력 등록" 버튼 primary 스타일로 통일.
+   * 조회요청 이력→엑셀관리 네비게이션 (파일 자동 선택, 사업자번호 하이라이트, 돌아가기 버튼).
+6. **DB 백업 및 초기화 (완료)**
+   * 전체 DB 데이터 SQL 백업 (`/db_backup_20260702.sql`), 모든 테이블 데이터 삭제.
+   * Vercel Blob 엑셀 파일 4개 삭제 완료.
 
 ## 5. 검증 계획 (Verification Plan)
 * **사업자번호 오타 매칭 테스트**: 사업자등록번호의 1~2자리가 다른 경우(편집거리 2 이하) 기업명이나 주소의 시/군이 일치할 때 오타 매칭으로 정확히 검출되는지 확인.
 * **지원사업 키워드 매칭 테스트**: 신청 분야와 과거 이력 중 '전시회', '특허' 등 동일 키워드가 발견될 때 '중복 수혜 의심' 경고가 UI(테이블 및 상세 모달)에 정상 노출되는지 확인.
+* **program_name 저장 테스트**: 대량검색 시 입력한 지원사업명이 `excel_uploads.program_name`에 정확히 저장되고, 조회요청기업 페이지에서 올바르게 표시되는지 확인.
+* **조회요청 이력 연동 테스트**: 이력 클릭 → 엑셀관리 자동 파일 선택 → 사업자번호 하이라이트 → 돌아가기 → 기업관리 모달 자동 열림 플로우 전체 검증.
+* **DB 백업/복원 테스트**: SQL 백업 파일(`db_backup_20260702.sql`)로 데이터 복원 후 모든 기능 정상 동작 확인.
 * **빌드 및 린트 안정성 테스트**: Next.js 빌드 시 타입 호환성 및 ESLint static analysis에 에러/경고가 없음을 지속적으로 유지.
 
-## 6. 소재지 및 주소 데이터 관리 규칙 (Data Management Rules) - [NEW]
-* **기본 정의**:
-  * **주소 (Location / Address)**: 데이터베이스의 `companies` 테이블 내 `location` 컬럼에는 항상 상세 주소(전체 도로명 주소 등)가 저장되어야 합니다.
-  * **소재지 (City/County)**: 화면상의 지역별 분류 필터링 및 조회를 돕기 위한 요소로, 데이터베이스에 별도 컬럼으로 저장하지 않습니다. 대신 전체 주소(`location`)에서 시/군 단위명(예: 수원시, 성남시)을 프론트엔드가 `extractSiGun` 헬퍼 함수를 통해 실시간으로 파싱하여 사용합니다.
-* **프론트엔드 컴포넌트 구현 시 필수 수정 사항 (버그 수정 가이드)**:
-  * **`DBManageModal.tsx` (기업 정보 수정 모달)**:
-    * 기존 버그: 수정 폼 제출 시 DB의 `location` 컬럼에 세부 주소(`editAddress`)가 아닌 시/군명(`editLocation`)이 전달되어 상세 주소가 유실되는 현상이 있었습니다.
-    * 조치 사항: `companyService.updateCompany` 호출 시 `location: editAddress`가 입력되도록 바인딩을 전면 교체해야 합니다.
-  * **`NewCompanyModal.tsx` (신규 기업 등록 모달)**:
-    * 기존 버그: 단건 신규 기업 등록 시 DB의 `location` 컬럼에 세부 주소(`address`)가 아닌 시/군명(`location`) 상태값이 매핑되어 등록되는 오류가 있었습니다.
-    * 조치 사항: 등록 객체 생성 시 `location: address`가 입력되도록 수정해야 합니다.
+## 6. 소재지 및 주소 데이터 관리 규칙 (Data Management Rules)
+
+### 수정 완료된 사항
+* **`DBManageModal.tsx` (기업 정보 수정 모달)**:
+  * 버그: 수정 폼 제출 시 DB의 `location` 컬럼에 세부 주소(`editAddress`)가 아닌 시/군명(`editLocation`)이 전달되어 상세 주소가 유실되는 현상이 있었습니다.
+  * 조치 완료: `companyService.updateCompany` 호출 시 `location: editAddress`가 입력되도록 바인딩 전면 교체 완료.
+* **`NewCompanyModal.tsx` (신규 기업 등록 모달)**:
+  * 버그: 단건 신규 기업 등록 시 DB의 `location` 컬럼에 세부 주소(`address`)가 아닌 시/군명(`location`) 상태값이 매핑되어 등록되는 오류가 있었습니다.
+  * 조치 완료: 등록 객체 생성 시 `location: address`가 입력되도록 수정 완료.

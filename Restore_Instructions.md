@@ -24,3 +24,38 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### 환경 변수 설정
+`frontend/.env.local` 파일에 다음 환경 변수가 필요합니다:
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+BLOB_READ_WRITE_TOKEN=your_blob_token
+```
+
+### Supabase CLI 설정 (선택)
+DB 마이그레이션이 필요한 경우:
+```bash
+npm install supabase --save-dev
+npx supabase init
+npx supabase link --project-ref your_project_ref
+npx supabase db push
+```
+
+### DB 백업 복원
+이전 데이터를 복원하려면 백업 파일을 실행하세요:
+```bash
+psql -d your_database_url -f db_backup_20260702.sql
+```
+
+### 주요 라우트 구조
+| 경로 | 설명 |
+|------|------|
+| `/` | 로그인 페이지 |
+| `/login` | 로그인 페이지 |
+| `/search` | 통합검색 대시보드 |
+| `/database` | 등록기업 관리 |
+| `/request` | 조회요청기업 |
+| `/file` | 엑셀관리 |
+| `/verify` | 검증결과 |
+| `/history` | 검색 기록 |

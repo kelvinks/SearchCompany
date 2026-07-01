@@ -19,3 +19,9 @@
 | 대량 등록 | Bulk Registration | 엑셀 파일을 통해 여러 건을 한 번에 등록하는 모드 |
 | 토스트 | Toast | 화면 하단/상단에 잠시 나타났다가 사라지는 알림 메시지 |
 | 프로그레스 바 | Progress Bar | 작업 진행률을 시각적으로 표시하는 바 |
+| 조회요청기업 | Inquiry Request Companies | 엑셀을 통해 조회 요청된 기업의 목록 |
+| 조회요청 이력 | Inquiry Request History | 기업별로 접수된 조회요청내역 (접수일, 요청일, 지원사업명, 요청기관, 문서번호, 파일명) |
+| 내부DB 매칭 | Internal DB Matching | 검증 결과에서 사업자번호로 내부 DB 기업과 매칭된 정보 |
+| program_name | Program Name | `excel_uploads` 테이블의 지원사업명 컬럼 (대량검색 시 사용자 입력값 저장) |
+| 커서 기반 페이지네이션 | Cursor-based Pagination | `created_at` + `id` 기준으로 DB 레벨에서 순차 조회하는 페이지네이션 방식 |
+| 편집 거리 | Levenshtein Distance | 두 문자열 간의 최소 편집 횟수. 사업자번호 오타 매칭에 활용 (2 이하) |

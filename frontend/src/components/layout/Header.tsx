@@ -23,6 +23,9 @@ export default function Header() {
   } else if (pathname === "/file") {
     title = "엑셀관리";
     subtitle = "업로드된 엑셀 파일과 파싱된 데이터를 조회하고 관리합니다.";
+  } else if (pathname === "/request") {
+    title = "조회요청기업";
+    subtitle = "엑셀을 통해서 조회 요청된 기업의 목록";
   } else if (pathname === "/font-test") {
     title = "폰트 테스트";
     subtitle = "한글 폰트 후보를 비교하고 선택합니다.";

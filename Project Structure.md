@@ -8,7 +8,8 @@
 
 - **`frontend/`** – 웹 UI 소스 코드가 들어있는 디렉터리입니다. HTML, CSS, JavaScript 혹은 프레임워크 파일들, 컴포넌트, 페이지, 정적 자산 및 빌드 설정이 모두 이곳에 위치합니다.
 - **`_sample_design/`** – 디자인 레퍼런스 자료, 목업, 레이아웃 예시 등을 포함하고 있습니다. `Design.md`에 정의된 디자인 시스템을 구현할 때 참고합니다.
-- **`.agents/`** – Antigravity 에이전트의 워크스페이스‑스코프 커스터마이징 파일이 저장되는 디렉터리입니다. 커스텀 스킬, 룰, 에이전트 설정 등이 여기 있습니다.
+- **`.agents/`** – Antigravity 에이전트의 워크스페이스-스코프 커스터마이징 파일이 저장되는 디렉터리입니다. 커스텀 스킬, 룰, 에이전트 설정 등이 여기 있습니다.
+- **`supabase/`** – Supabase CLI 설정 및 DB 마이그레이션 파일이 위치합니다.
 
 ## 파일 (루트 레벨)
 
@@ -17,7 +18,13 @@
 - **`History.md`** – 프로젝트 진행 중 중요한 변경사항, 의사결정, 논의 내용을 연대순으로 기록한 로그입니다.
 - **`Restore_Instructions.md`** – 레포지토리를 정상 상태로 복구하기 위한 절차(예: DB 마이그레이션, 환경 설정)를 안내합니다.
 - **`supabase_schema.sql`** – Supabase 백엔드에서 사용되는 데이터베이스 스키마 파일입니다.
-- **`.DS_Store`** – macOS 시스템 파일로, 무시해도 됩니다.
+- **`db_backup_20260702.sql`** – 2026-07-02 기준 전체 DB 데이터 백업 파일 (companies, support_histories, excel_uploads, search_logs).
+- **`workflow-overview.md`** – 통합 사용자 흐름 개요 (기업 등록/지원이력 등록 공통 플로우).
+- **`support-history-bulk.md`** – 지원이력 대량 등록 상세 스펙.
+- **`faq.md`** – 자주 묻는 질문 (FAQ).
+- **`implementation-notes.md`** – 구현 기술 노트 (파서, 서비스, 타입 정의 등).
+- **`testing-checklist.md`** – 테스트 체크리스트.
+- **`glossary.md`** – 용어 사전.
 
 ---
 
@@ -25,16 +32,18 @@
 | 경로 | 용도 |
 |------|------|
 | `frontend/` | 프론트엔드 애플리케이션 코드 |
-| `_sample_design/` | 디자인 레퍼런스 자산 |
+| `_sample_design/` | 디자인 렌퍼런스 자산 |
 | `.agents/` | Antigravity 커스터마이징 파일 |
+| `supabase/` | Supabase CLI 설정 및 마이그레이션 |
 | `Design.md` | UI/UX 디자인 가이드 |
 | `Plan.md` | 프로젝트 로드맵 및 작업 목록 |
 | `History.md` | 변경 로그 |
 | `Restore_Instructions.md` | 복구 절차 |
 | `supabase_schema.sql` | 데이터베이스 스키마 |
+| `db_backup_20260702.sql` | DB 백업 파일 |
 
 ---
 
 > **팁**: 새로운 모듈이나 자산을 추가할 때는 기존 명명 규칙을 따르고, 관련 파일은 해당 디렉터리 아래에 모아두세요. 이렇게 하면 프로젝트 구조가 깔끔하고 탐색하기 쉬워집니다.
 
-*작성일: 2026-06-26*
+*작성일: 2026-06-26 | 최종 업데이트: 2026-07-02*
