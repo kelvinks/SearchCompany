@@ -94,6 +94,7 @@ CREATE TABLE public.excel_uploads (
   parsed_data jsonb DEFAULT '[]'::jsonb,
   column_headers text[],
   upload_note text,
+  program_name text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

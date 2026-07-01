@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Company } from "@/data/mockData";
 import { companyService } from "@/services/companyService";
 import BusinessNumber from "@/components/BusinessNumber";
@@ -27,10 +27,19 @@ function formatDetailFields(c: Company): string {
   return parts.join(" | ") || "-";
 }
 
+const PAGE_SIZE = 20;
+
 export default function RequestCompaniesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<{ createdAt: string; id: string } | undefined>();
+  const [totalCount, setTotalCount] = useState(0);
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchTotal, setSearchTotal] = useState(0);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const searchCursorRef = useRef<{ createdAt: string; id: string } | undefined>(undefined);
 
   useEffect(() => {
     const load = async () => {
@@ -38,8 +47,10 @@ export default function RequestCompaniesPage() {
       try {
         const removed = await companyService.cleanupInquiryCompanies();
         if (removed > 0) console.log(`[Cleanup] ${removed} empty-BRN entries removed`);
-        const data = await companyService.getInquiryCompanies();
-        setCompanies(data);
+        const result = await companyService.getInquiryCompanies(PAGE_SIZE);
+        setCompanies(result.companies);
+        setNextCursor(result.nextCursor);
+        setTotalCount(result.total);
       } finally {
         setLoading(false);
       }
@@ -49,21 +60,90 @@ export default function RequestCompaniesPage() {
 
   const handleRefresh = async () => {
     setLoading(true);
+    setSearchTerm("");
+    setSearchMode(false);
+    setSearchTotal(0);
+    searchCursorRef.current = undefined;
     try {
-      const data = await companyService.getInquiryCompanies();
-      setCompanies(data);
+      const result = await companyService.getInquiryCompanies(PAGE_SIZE);
+      setCompanies(result.companies);
+      setNextCursor(result.nextCursor);
+      setTotalCount(result.total);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredCompanies = companies.filter((c) => {
-    const q = searchTerm.toLowerCase();
-    return (
-      c.companyName.toLowerCase().includes(q) ||
-      c.businessNumber.replace(/-/g, "").includes(q.replace(/-/g, ""))
-    );
-  });
+  const handleLoadMore = async () => {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const result = await companyService.getInquiryCompanies(PAGE_SIZE, { cursor: nextCursor });
+      setCompanies((prev) => [...prev, ...result.companies]);
+      setNextCursor(result.nextCursor);
+      setTotalCount(result.total);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const executeSearch = useCallback(async (term: string) => {
+    if (!term.trim()) {
+      setSearchMode(false);
+      setSearchTotal(0);
+      searchCursorRef.current = undefined;
+      setLoading(true);
+      try {
+        const result = await companyService.getInquiryCompanies(PAGE_SIZE);
+        setCompanies(result.companies);
+        setNextCursor(result.nextCursor);
+        setTotalCount(result.total);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    setSearchMode(true);
+    setLoading(true);
+    searchCursorRef.current = undefined;
+    try {
+      const result = await companyService.getInquiryCompanies(PAGE_SIZE, { searchTerm: term });
+      setCompanies(result.companies);
+      searchCursorRef.current = result.nextCursor;
+      setSearchTotal(result.total);
+      setNextCursor(undefined);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      executeSearch(value);
+    }, 300);
+  };
+
+  const handleSearchLoadMore = async () => {
+    if (!searchCursorRef.current || loadingMore || !searchTerm.trim()) return;
+    setLoadingMore(true);
+    try {
+      const result = await companyService.getInquiryCompanies(PAGE_SIZE, {
+        cursor: searchCursorRef.current,
+        searchTerm,
+      });
+      setCompanies((prev) => [...prev, ...result.companies]);
+      searchCursorRef.current = result.nextCursor;
+      setSearchTotal(result.total);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const displayTotal = searchMode ? searchTotal : totalCount;
+  const hasMore = searchMode ? !!searchCursorRef.current : !!nextCursor;
 
   return (
     <div suppressHydrationWarning={true} className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
@@ -91,7 +171,7 @@ export default function RequestCompaniesPage() {
             type="text"
             placeholder="기업명 또는 사업자등록번호 검색..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 h-11 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-sm"
           />
         </div>
@@ -102,7 +182,13 @@ export default function RequestCompaniesPage() {
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <h3 className="text-lg font-semibold text-gray-800">
             조회요청 기업 목록
-            <span className="text-sm font-normal text-gray-500 ml-2">총 <span className="font-mono">{filteredCompanies.length}</span>건</span>
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              {searchMode && <span className="text-blue-500">검색 결과 </span>}
+              총 <span className="font-mono">{displayTotal}</span>건
+              {companies.length < displayTotal && (
+                <span className="text-gray-400 ml-1">(이 중 {companies.length}건 표시)</span>
+              )}
+            </span>
           </h3>
         </div>
         <div className="overflow-x-auto">
@@ -142,10 +228,10 @@ export default function RequestCompaniesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredCompanies.length > 0 ? (
-                filteredCompanies.map((company, idx) => (
+              {companies.length > 0 ? (
+                companies.map((company, idx) => (
                   <tr key={`${company.businessNumber}-${idx}`} className="hover:bg-[#EBF8FF] transition-colors group">
-                    <td className="py-4 px-6 text-center text-gray-400 font-mono text-xs align-top">{filteredCompanies.length - idx}</td>
+                    <td className="py-4 px-6 text-center text-gray-400 font-mono text-xs align-top">{companies.length - idx}</td>
                     <td className="py-4 px-6 font-medium text-gray-900 align-top truncate">{company.companyName}</td>
                     <td className="py-4 px-6 text-center text-gray-600 font-mono align-top">
                       <BusinessNumber value={company.businessNumber} />
@@ -163,6 +249,17 @@ export default function RequestCompaniesPage() {
             </tbody>
           </table>
         </div>
+        {hasMore && (
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-center">
+            <button
+              onClick={searchMode ? handleSearchLoadMore : handleLoadMore}
+              disabled={loadingMore}
+              className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl shadow-sm hover:bg-gray-50 font-medium transition-colors text-sm disabled:opacity-50"
+            >
+              {loadingMore ? "로딩 중..." : `더보기 (${companies.length} / ${displayTotal})`}
+            </button>
+          </div>
+        )}
       </div>
 
       <LoadingOverlay show={loading} message="불러오는 중..." />

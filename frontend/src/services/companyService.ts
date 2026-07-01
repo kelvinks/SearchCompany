@@ -833,6 +833,7 @@ export const companyService = {
     uploadNote?: string;
     orgName?: string;
     docNum?: string;
+    programName?: string;
   }): Promise<any | null> {
     if (!isSupabaseConfigured || !supabase) {
       const stored = localStorage.getItem("gbsa_excel_uploads");
@@ -840,6 +841,7 @@ export const companyService = {
       const newUpload = {
         id: `excel-${Date.now()}`,
         ...upload,
+        program_name: upload.programName || null,
         created_at: new Date().toISOString(),
       };
       uploads.unshift(newUpload);
@@ -862,6 +864,7 @@ export const companyService = {
         upload_note: upload.uploadNote || null,
         org_name: upload.orgName || null,
         doc_num: upload.docNum || null,
+        program_name: upload.programName || null,
       })
       .select()
       .single();
@@ -976,6 +979,27 @@ export const companyService = {
       return true;
     }
 
+    // 삭제할 업로드의 파일명 조회 (관련 search_logs 찾기 위해)
+    const { data: upload } = await supabase
+      .from("excel_uploads")
+      .select("file_name")
+      .eq("id", id)
+      .single();
+
+    // 관련 BATCH search_logs 삭제
+    if (upload?.file_name) {
+      const { error: logError } = await supabase
+        .from("search_logs")
+        .delete()
+        .eq("type", "BATCH")
+        .eq("title", upload.file_name);
+
+      if (logError) {
+        console.error("Error deleting related search logs:", logError);
+      }
+    }
+
+    // excel_uploads 삭제
     const { error } = await supabase
       .from("excel_uploads")
       .delete()
@@ -997,7 +1021,7 @@ export const companyService = {
     if (isSupabaseConfigured && supabase) {
       const { data: logs, error } = await supabase
         .from("search_logs")
-        .select("id, additional_data")
+        .select("id, additional_data, description")
         .eq("type", "BATCH");
 
       if (error) {
@@ -1006,17 +1030,40 @@ export const companyService = {
       }
 
       for (const log of (logs || [])) {
-        if (!log.additional_data?.results) continue;
-        const original = log.additional_data.results;
-        const filtered = original.filter((r: any) => r.business_number || r.businessNumber);
-        if (filtered.length === original.length) continue;
+        let needsUpdate = false;
+        const updateData: any = {};
 
-        removedCount += original.length - filtered.length;
+        // additional_data.results 정리
+        if (log.additional_data?.results) {
+          const original = log.additional_data.results;
+          const filtered = original.filter((r: any) => r.business_number || r.businessNumber);
+          if (filtered.length < original.length) {
+            removedCount += original.length - filtered.length;
+            updateData.additional_data = { ...log.additional_data, results: filtered };
+            needsUpdate = true;
+          }
+        }
 
-        await supabase
-          .from("search_logs")
-          .update({ additional_data: { ...log.additional_data, results: filtered } })
-          .eq("id", log.id);
+        // description JSON에서 results 제거 (additional_data가 있으면 description의 results는 불필요)
+        if (log.description && log.additional_data?.results) {
+          try {
+            const parsed = JSON.parse(log.description);
+            if (parsed.results) {
+              delete parsed.results;
+              updateData.description = JSON.stringify(parsed);
+              needsUpdate = true;
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        if (needsUpdate) {
+          await supabase
+            .from("search_logs")
+            .update(updateData)
+            .eq("id", log.id);
+        }
       }
     }
 
@@ -1029,7 +1076,21 @@ export const companyService = {
           for (const log of logs) {
             if (log.type !== "BATCH") continue;
             const addData = log.additionalData as any;
-            if (!addData?.results) continue;
+            if (!addData || Object.keys(addData).length === 0) {
+              // additionalData가 없으면 description에서 results 제거
+              if (log.description) {
+                try {
+                  const parsed = JSON.parse(log.description);
+                  if (parsed.results) {
+                    delete parsed.results;
+                    log.description = JSON.stringify(parsed);
+                    changed = true;
+                  }
+                } catch {}
+              }
+              continue;
+            }
+            if (!addData.results) continue;
             const original = addData.results as Company[];
             const filtered = original.filter((r) => r.businessNumber?.trim());
             if (filtered.length === original.length) continue;
@@ -1049,20 +1110,55 @@ export const companyService = {
     return removedCount;
   },
 
-  async getInquiryCompanies(): Promise<Company[]> {
-    const logs = await this.getSearchLogs();
-    const batchLogs = logs.filter((l) => l.type === "BATCH");
+  async getInquiryCompanies(limit = 20, options?: {
+    cursor?: { createdAt: string; id: string };
+    searchTerm?: string;
+  }): Promise<{
+    companies: Company[];
+    nextCursor?: { createdAt: string; id: string };
+    total: number;
+  }> {
+    const { cursor, searchTerm } = options || {};
 
-    const allResults: Company[] = [];
+    // DB에서 BATCH 로그를 커서 기반으로 순차 조회
+    let query = supabase!
+      .from("search_logs")
+      .select("*")
+      .eq("type", "BATCH")
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
 
-    for (const log of batchLogs) {
+    if (cursor) {
+      query = query.or(`created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`);
+    }
+
+    // 검색 시 더 많은 로그를 가져옴 (중복 제거 후 검색 결과 확보)
+    const fetchMultiplier = searchTerm ? 10 : 3;
+    const fetchLimit = Math.max(limit * fetchMultiplier, 60);
+    query = query.limit(fetchLimit);
+
+    const { data: logs, error } = await query;
+
+    if (error) {
+      console.error("Error fetching BATCH logs:", error);
+      return { companies: [], total: 0 };
+    }
+
+    if (!logs || logs.length === 0) {
+      return { companies: [], total: 0 };
+    }
+
+    const allResults: { company: Company; logYear: string }[] = [];
+
+    for (const log of logs) {
+      const mapped = mapDbSearchLog(log);
       let results: Company[] | undefined;
 
-      if (log.additionalData && (log.additionalData as any).results) {
-        results = (log.additionalData as any).results;
-      } else if (log.description) {
+      if (mapped.additionalData && (mapped.additionalData as any).results) {
+        results = (mapped.additionalData as any).results;
+      } else if (!mapped.additionalData && mapped.description) {
         try {
-          const parsed = JSON.parse(log.description);
+          const parsed = JSON.parse(mapped.description);
           if (parsed.results) {
             results = parsed.results;
           }
@@ -1071,12 +1167,163 @@ export const companyService = {
         }
       }
 
+      const sourceFile = mapped.title || "";
+      const logYear = this.extractYear(sourceFile, mapped.createdAt);
+
       if (results && Array.isArray(results)) {
-        allResults.push(...results.filter((r) => r.businessNumber?.trim()));
+        for (const r of results.filter((r) => r.businessNumber?.trim())) {
+          allResults.push({ company: r, logYear });
+        }
       }
     }
 
-    return allResults;
+    // 검색 필터링 (회사명 또는 사업자번호)
+    let filtered = allResults;
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase().replace(/-/g, "");
+      filtered = allResults.filter(({ company }) => {
+        const name = (company.companyName || "").toLowerCase();
+        const brn = (company.businessNumber || "").replace(/-/g, "");
+        return name.includes(q) || brn.includes(q);
+      });
+    }
+
+    // 년도 + 지원사업명 + 지원과제명 + 사업자번호 기준 중복 제거
+    const seen = new Set<string>();
+    const deduplicated = filtered.filter(({ company, logYear }) => {
+      const year = logYear || (company as any).year || "";
+      const program = (company as any).appliedProgramName || "";
+      const project = (company as any).appliedProjectName || "";
+      const key = `${year}_${normalizeBusinessNumber(company.businessNumber)}_${program}_${project}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    // 요청된 limit만큼 잘라서 반환
+    const sliced = deduplicated.slice(0, limit);
+
+    // 다음 커서: 가져온 로그 중 마지막 로그 기준
+    const lastLog = logs[logs.length - 1];
+    const nextCursor = logs.length >= fetchLimit
+      ? { createdAt: lastLog.created_at, id: lastLog.id }
+      : undefined;
+
+    return {
+      companies: sliced.map(({ company }) => company),
+      nextCursor,
+      total: deduplicated.length,
+    };
+  },
+
+  // 특정 기업의 조회요청 이력 조회 (사업자번호 기준)
+  async getCompanyInquiryRequests(businessNumber: string): Promise<{
+    fileName: string;
+    sendDate: string;
+    requestDate: string;
+    orgName: string;
+    docNum: string;
+    appliedProgramName: string;
+    appliedProjectName: string;
+    matchStatus: string;
+  }[]> {
+    if (!isSupabaseConfigured || !supabase) return [];
+
+    const normalizedBrn = normalizeBusinessNumber(businessNumber);
+
+    // BATCH 로그 조회
+    const { data: logs, error } = await supabase
+      .from("search_logs")
+      .select("title, created_at, additional_data, description")
+      .eq("type", "BATCH")
+      .order("created_at", { ascending: false });
+
+    if (error || !logs) return [];
+
+    // excel_uploads에서 메타데이터 조회 (파일명 기준 매칭)
+    const { data: uploads } = await supabase
+      .from("excel_uploads")
+      .select("file_name, org_name, doc_num, send_date, request_date");
+
+    const uploadMeta = new Map<string, { orgName: string; docNum: string; sendDate: string; requestDate: string }>();
+    for (const u of (uploads || [])) {
+      uploadMeta.set(u.file_name, {
+        orgName: u.org_name || "",
+        docNum: u.doc_num || "",
+        sendDate: u.send_date || "",
+        requestDate: u.request_date || "",
+      });
+    }
+
+    const requests: {
+      fileName: string;
+      sendDate: string;
+      requestDate: string;
+      orgName: string;
+      docNum: string;
+      appliedProgramName: string;
+      appliedProjectName: string;
+      matchStatus: string;
+    }[] = [];
+
+    for (const log of logs) {
+      let results: any[] | undefined;
+
+      if (log.additional_data?.results) {
+        results = log.additional_data.results;
+      } else if (log.description) {
+        try {
+          const parsed = JSON.parse(log.description);
+          if (parsed.results) results = parsed.results;
+        } catch {}
+      }
+
+      if (!results || !Array.isArray(results)) continue;
+
+      const meta = uploadMeta.get(log.title) || { orgName: "", docNum: "", sendDate: "", requestDate: "" };
+
+      for (const r of results) {
+        const rBrn = normalizeBusinessNumber(r.businessNumber || "");
+        if (rBrn === normalizedBrn) {
+          requests.push({
+            fileName: log.title || "",
+            sendDate: meta.sendDate || (log.created_at ? new Date(log.created_at).toISOString().slice(0, 10) : ""),
+            requestDate: meta.requestDate || "",
+            orgName: meta.orgName,
+            docNum: meta.docNum,
+            appliedProgramName: r.appliedProgramName || "",
+            appliedProjectName: r.appliedProjectName || "",
+            matchStatus: r.matchStatus || "",
+          });
+        }
+      }
+    }
+
+    return requests;
+  },
+
+  // 파일명/사업명에서 년도 추출 (YYMMDD, 4자리 년도 등)
+  extractYear(sourceFile: string, createdAt?: string): string {
+    // 1. 파일명에서 YYMMDD 형식 추출 (파일명 끝: _YYMMDD 또는 -YYMMDD 또는 공백YYMMDD)
+    if (sourceFile) {
+      const yymmddMatch = sourceFile.match(/(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?:\.\w+)?$/);
+      if (yymmddMatch) {
+        const yy = parseInt(yymmddMatch[1], 10);
+        return String(yy >= 50 ? 1900 + yy : 2000 + yy);
+      }
+      // 4자리 년도 추출 (2020~2029)
+      const fullYearMatch = sourceFile.match(/(20[2-3]\d)/);
+      if (fullYearMatch) {
+        return fullYearMatch[1];
+      }
+    }
+
+    // 2. 로그 생성시간에서 년도 추출
+    if (createdAt) {
+      return String(new Date(createdAt).getFullYear());
+    }
+
+    return "";
   },
 
   // 사업자등록번호로 company_id 조회 (지원이력 벌크등록용)

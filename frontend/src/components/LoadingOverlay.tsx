@@ -20,7 +20,7 @@ export default function LoadingOverlay({ show, message = "저장 중입니다...
   const style = OVERLAY_STYLES.find((s) => s.id === styleId) || OVERLAY_STYLES[1];
 
   return (
-    <div className="fixed inset-0 z-[9999]">
+    <div className="absolute inset-0 z-[9999]">
       {style.render(message)}
     </div>
   );

@@ -10,6 +10,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 interface HistoryEntry {
   companyId: string;
   companyName: string;
+  businessNumber: string;
   history: Omit<SupportHistory, "id">;
 }
 
@@ -91,7 +92,7 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
         supportAmount: Number(supportAmount) || 0,
         notes: notes || undefined,
       };
-      await onAddHistory([{ companyId: selectedCompany.id, companyName: selectedCompany.companyName, history }]);
+      await onAddHistory([{ companyId: selectedCompany.id, companyName: selectedCompany.companyName, businessNumber: selectedCompany.businessNumber, history }]);
       onClose();
     } finally {
       setSaving(false);
@@ -137,6 +138,7 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
         previewEntries.push({
           companyId,
           companyName,
+          businessNumber: bNum,
           history: {
             year: yr,
             programName: pName,
@@ -190,8 +192,10 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity p-4 pt-20">
-      <div className="bg-white w-full max-w-lg shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative">
+    <div className="fixed inset-0 z-50 transition-opacity" style={{ left: '256px', top: '64px' }}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className={`absolute inset-0 flex items-center justify-center ${bulkPreview ? 'p-[10vh_10vw]' : 'p-8'}`}>
+      <div className={`bg-white w-full shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative ${bulkPreview ? 'max-h-full h-auto' : 'max-w-lg'}`}>
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
           <div className="flex items-center gap-3">
@@ -230,7 +234,7 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
         )}
 
         {/* Form Body */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 p-6 overflow-y-auto">
           {activeTab === "SINGLE" && !bulkPreview ? (
             <form id="newHistoryForm" onSubmit={handleSingleSubmit} className="space-y-5">
               {/* Year + Company Search */}
@@ -371,8 +375,8 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
               </div>
             </form>
           ) : bulkPreview ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-gray-50/50 shrink-0">
                 <p className="text-sm font-semibold text-gray-700">
                   총 <span className="text-[var(--color-gbsa-primary)]">{bulkPreview.length}</span>건의 이력이 파싱되었습니다. 확인 후 등록해주세요.
                 </p>
@@ -384,26 +388,9 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
                 </button>
               </div>
 
-              {/* 요약 */}
-              <div className="flex gap-2 text-xs">
-                <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full font-semibold">
-                  정상: {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건
-                </span>
-                {bulkPreview.some(e => e.companyId === "UNKNOWN") && (
-                  <span className="px-2 py-1 bg-red-50 text-red-700 rounded-full font-semibold">
-                    매칭실패: {bulkPreview.filter(e => e.companyId === "UNKNOWN").length}건
-                  </span>
-                )}
-                {bulkPreview.some(e => !e.history.programName || !e.history.year) && (
-                  <span className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded-full font-semibold">
-                    필수값누락: {bulkPreview.filter(e => !e.history.programName || !e.history.year).length}건
-                  </span>
-                )}
-              </div>
-
               {/* 미리보기 테이블 */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
-                <div className="max-h-64 overflow-y-auto">
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
                   <table className="w-full text-xs text-left">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr className="border-b border-gray-200">
@@ -432,7 +419,7 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
                               {e.companyName}
                             </td>
                             <td className="px-2 py-2 font-mono text-xs text-gray-600">
-                              {e.companyId !== "UNKNOWN" ? e.companyId.slice(0, 8) + "..." : "-"}
+                              {formatBusinessNumber(e.businessNumber) || "-"}
                             </td>
                             <td className={`px-2 py-2 ${!e.history.year ? 'text-red-500' : 'text-gray-700'}`}>
                               {e.history.year || '(없음)'}
@@ -478,32 +465,6 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
                   </table>
                 </div>
               </div>
-
-              {/* 하단 버튼 */}
-              <div className="flex items-center justify-between pt-2">
-                <p className="text-sm text-gray-500">
-                  {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건 정상
-                  {bulkPreview.some(e => e.companyId === "UNKNOWN" || !e.history.programName || !e.history.year) && (
-                    <span className="text-red-500">
-                      , {bulkPreview.filter(e => e.companyId === "UNKNOWN" || !e.history.programName || !e.history.year).length}건 제외
-                    </span>
-                  )}
-                </p>
-                <button 
-                    onClick={handleBulkSubmit}
-                    disabled={submitting || bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length === 0}
-                    className="px-5 py-2.5 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    {submitting ? "등록 중..." : `${bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건 등록`}
-                </button>
-              </div>
-              <button 
-                  onClick={handleBulkSubmit}
-                  disabled={submitting}
-                  className="w-full py-2.5 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-xl hover:bg-[var(--color-gbsa-secondary)] transition-colors"
-              >
-                  {submitting ? "등록 중..." : "등록 완료"}
-              </button>
             </div>
           ) : (
             <div className="space-y-6">
@@ -550,7 +511,7 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
 
         {/* Footer */}
         {activeTab === "SINGLE" && !bulkPreview && (
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -568,7 +529,48 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
           </div>
         )}
 
+        {/* Bulk Preview Footer */}
+        {bulkPreview && (
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex gap-2">
+              {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length > 0 && (
+                <span className="px-3 py-1.5 bg-green-50 text-green-700 rounded-full font-semibold text-sm">
+                  정상 {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건
+                </span>
+              )}
+              {bulkPreview.filter(e => e.companyId === "UNKNOWN").length > 0 && (
+                <span className="px-3 py-1.5 bg-red-50 text-red-700 rounded-full font-semibold text-sm">
+                  매칭실패 {bulkPreview.filter(e => e.companyId === "UNKNOWN").length}건
+                </span>
+              )}
+              {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && (!e.history.programName || !e.history.year)).length > 0 && (
+                <span className="px-3 py-1.5 bg-yellow-50 text-yellow-700 rounded-full font-semibold text-sm">
+                  필수값누락 {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && (!e.history.programName || !e.history.year)).length}건
+                </span>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setBulkPreview(null)}
+                className="px-5 py-2.5 text-sm bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                다시 선택
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkSubmit}
+                disabled={submitting || bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length === 0}
+                className="px-5 py-2.5 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? "등록 중..." : `${bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건 등록`}
+              </button>
+            </div>
+          </div>
+        )}
+
         <LoadingOverlay show={isUploading || submitting} message={isUploading ? "파일 읽는 중..." : "등록 중..."} />
+      </div>
       </div>
     </div>
   );

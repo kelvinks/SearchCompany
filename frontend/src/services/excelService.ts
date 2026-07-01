@@ -606,7 +606,7 @@ export const excelService = {
       (h) => h === '연번' || h === '순번' || h === '번호'
     );
 
-    // Filter data rows: must have content, 연번/번호 must be numeric, and at least 2 meaningful columns
+    // Filter data rows: must have content, 연번/번호 must be numeric, and at least 1 meaningful column
     const dataRows = rows.slice(headerRowIdx + 1).filter((row) => {
       if (!row) return false;
 
@@ -621,8 +621,8 @@ export const excelService = {
           meaningfulCount++;
         }
       }
-      // Rows with fewer than 2 meaningful fields in the data range are garbage
-      if (meaningfulCount < 2) return false;
+      // Rows with fewer than 1 meaningful fields in the data range are garbage
+      if (meaningfulCount < 1) return false;
 
       // If "연번"/"번호" column exists and has a value, it must be numeric
       if (seqNumIdx >= 0) {

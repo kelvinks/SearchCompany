@@ -2,6 +2,7 @@
 
 import { Company, SupportHistory } from "@/data/mockData";
 import { useState, useEffect, useRef, Fragment } from "react";
+import { useRouter } from "next/navigation";
 import { companyService } from "@/services/companyService";
 import { formatBusinessNumber } from "@/utils/format";
 import BusinessNumber from "@/components/BusinessNumber";
@@ -31,6 +32,7 @@ const handleAmountChange = (setter: (val: string) => void) => (e: React.ChangeEv
 };
 
 export default function DBManageModal({ company, onClose }: DBManageModalProps) {
+  const router = useRouter();
   useEffect(() => {
     const originalBodyOverflow = document.body.style.overflow;
     const mainEl = document.querySelector("main");
@@ -189,6 +191,26 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
   const [selectedAmount, setSelectedAmount] = useState("");
   const [supportAmount, setSupportAmount] = useState("");
   const [notes, setNotes] = useState("");
+
+  // 조회요청 이력
+  const [inquiryRequests, setInquiryRequests] = useState<{
+    fileName: string;
+    sendDate: string;
+    requestDate: string;
+    orgName: string;
+    docNum: string;
+    appliedProgramName: string;
+    appliedProjectName: string;
+    matchStatus: string;
+  }[]>([]);
+
+  useEffect(() => {
+    if (company?.businessNumber) {
+      companyService.getCompanyInquiryRequests(company.businessNumber)
+        .then(setInquiryRequests)
+        .catch(() => setInquiryRequests([]));
+    }
+  }, [company?.businessNumber]);
 
   if (!company) return null;
 
@@ -737,6 +759,89 @@ export default function DBManageModal({ company, onClose }: DBManageModalProps) 
               </tbody>
             </table>
           </div>
+
+          {/* 조회요청 이력 */}
+          {inquiryRequests.length > 0 && (
+            <div className="mt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-orange-50 rounded-lg">
+                  <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800">조회요청 이력</h3>
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold">{inquiryRequests.length}건</span>
+              </div>
+              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#FFF7ED] text-orange-700 border-b border-orange-200">
+                    <tr>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          접수일
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                          요청일
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                          지원사업명
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                          요청기관
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          문서번호
+                        </div>
+                      </th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                          파일명
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-orange-100 bg-white">
+                    {inquiryRequests.map((req, idx) => (
+                      <tr
+                        key={idx}
+                        className="hover:bg-orange-50/50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (req.fileName) {
+                            onClose();
+                            router.push(`/file?fileName=${encodeURIComponent(req.fileName)}&companyId=${company.id}&bizNo=${encodeURIComponent(company.businessNumber)}`);
+                          }
+                        }}
+                      >
+                        <td className="py-3 px-4 text-gray-500 font-mono text-xs whitespace-nowrap text-center">{req.sendDate || "-"}</td>
+                        <td className="py-3 px-4 text-gray-500 font-mono text-xs whitespace-nowrap text-center">{req.requestDate || "-"}</td>
+                        <td className="py-3 px-4 text-gray-700 font-medium text-center">
+                          {req.appliedProgramName || "-"}
+                          {req.appliedProjectName ? <span className="text-gray-400 font-normal ml-1">({req.appliedProjectName})</span> : ""}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 text-center">{req.orgName || "-"}</td>
+                        <td className="py-3 px-4 text-gray-600 font-mono text-xs">{req.docNum || "-"}</td>
+                        <td className="py-3 px-4 text-[var(--color-gbsa-primary)] text-xs font-medium underline">{req.fileName || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

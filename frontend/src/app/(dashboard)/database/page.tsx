@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Company } from "@/data/mockData";
 import DBManageModal from "@/components/modal/DBManageModal";
 import DeletedDBManageModal from "@/components/modal/DeletedDBManageModal";
@@ -14,6 +15,9 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import { supabase } from "@/services/supabaseClient";
 
 export default function DatabasePage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const returnCompanyId = searchParams.get("companyId");
   const [searchTerm, setSearchTerm] = useState("");
   const [companies, setCompanies] = useState<Company[]>([]);
   const [deletedCompanies, setDeletedCompanies] = useState<(Company & { deletedAt?: string })[]>([]);
@@ -48,6 +52,16 @@ export default function DatabasePage() {
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (returnCompanyId && companies.length > 0 && !selectedCompany) {
+      const match = companies.find((c) => c.id === returnCompanyId);
+      if (match) {
+        setSelectedCompany(match);
+        router.replace("/database");
+      }
+    }
+  }, [companies, returnCompanyId]);
 
   const handleExportAll = async () => {
     if (companies.length === 0) return;

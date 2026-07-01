@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [reqDoc, setReqDoc] = useState("");
   const [sendDate, setSendDate] = useState("");
   const [requestDate, setRequestDate] = useState("");
+  const [batchProgramName, setBatchProgramName] = useState("");
   const [reqDesc, setReqDesc] = useState("");
   const [excelPassword, setExcelPassword] = useState("");
   
@@ -41,6 +42,11 @@ export default function DashboardPage() {
     const file = files[0];
 
     console.log(`[Upload] Start: ${file.name} (${file.size} bytes, type: ${file.type})`);
+    if (!batchProgramName.trim()) {
+      alert("지원사업명은 필수 항목입니다.");
+      setIsUploading(false);
+      return;
+    }
     setIsUploading(true);
     try {
       // 1. Build password attempt list (manual input first, then filename-extracted)
@@ -123,6 +129,7 @@ export default function DashboardPage() {
         uploadNote: reqDesc || undefined,
         orgName: reqOrg || undefined,
         docNum: reqDoc || undefined,
+        programName: batchProgramName,
       });
       console.log(`[Upload] Step 5 OK`);
 
@@ -143,6 +150,7 @@ export default function DashboardPage() {
         docNum: reqDoc || "미지정",
         description: batchDesc,
         sourceFile: file.name,
+        programName: batchProgramName,
       };
 
       const duplicateCount = matchedResults.filter(
@@ -160,6 +168,7 @@ export default function DashboardPage() {
           desc: batchMeta.description,
           sourceFile: batchMeta.sourceFile,
           isBulk: true,
+          programName: batchMeta.programName,
         }),
         totalCount: matchedResults.length,
         duplicateCount: duplicateCount,
@@ -262,10 +271,10 @@ export default function DashboardPage() {
           {/* Top Form Fields */}
           <div className="w-full grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 text-left relative z-10" onClick={(e) => e.stopPropagation()}>
             {/* Left Column (40%): 요청기관, 문서번호, 접수일/요청일, 엑셀비밀번호 stacked */}
-            <div className="md:col-span-2 flex flex-col gap-4">
+            <div className="md:col-span-2 flex flex-col gap-4 h-full">
               {/* 요청기관 */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                   요청기관
                 </label>
@@ -274,12 +283,12 @@ export default function DashboardPage() {
                   value={reqOrg}
                   onChange={(e) => setReqOrg(e.target.value)}
                   placeholder="기관명을 입력하세요" 
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-sm transition-all text-sm bg-white" 
                 />
               </div>
               {/* 문서번호 */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                   문서번호
                 </label>
@@ -288,13 +297,13 @@ export default function DashboardPage() {
                   value={reqDoc}
                   onChange={(e) => setReqDoc(e.target.value)}
                   placeholder="문서번호를 입력하세요" 
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-sm transition-all text-sm bg-white" 
                 />
               </div>
               {/* 접수일 + 요청일 (half-half) */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     접수일
                   </label>
@@ -302,11 +311,11 @@ export default function DashboardPage() {
                     type="date" 
                     value={sendDate}
                     onChange={(e) => setSendDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-sm transition-all text-sm bg-white" 
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     요청일
                   </label>
@@ -314,13 +323,13 @@ export default function DashboardPage() {
                     type="date" 
                     value={requestDate}
                     onChange={(e) => setRequestDate(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-sm transition-all text-sm bg-white" 
                   />
                 </div>
               </div>
               {/* 엑셀 비밀번호 */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                   엑셀 비밀번호
                 </label>
@@ -329,22 +338,37 @@ export default function DashboardPage() {
                   value={excelPassword}
                   onChange={(e) => setExcelPassword(e.target.value)}
                   placeholder="암호화된 파일의 비밀번호" 
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm bg-white" 
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-sm transition-all text-sm bg-white" 
                 />
               </div>
             </div>
-            {/* Right Column (60%): 요청내용 — height matches left column */}
-            <div className="md:col-span-3 flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-gray-700 ml-1 flex items-center gap-1.5">
-                <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                요청내용
-              </label>
-              <div className="flex-1 flex">
+            {/* Right Column (60%): 지원사업명 + 요청내용 */}
+            <div className="md:col-span-3 flex flex-col gap-4 h-full">
+              {/* 지원사업명 */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  지원사업명 <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={batchProgramName}
+                  onChange={(e) => setBatchProgramName(e.target.value)}
+                  placeholder="지원사업명을 입력하세요" 
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-sm transition-all text-sm bg-white" 
+                />
+              </div>
+              {/* 요청내용 */}
+              <div className="flex flex-col gap-1.5 flex-1">
+                <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  요청내용
+                </label>
                 <textarea 
                   value={reqDesc}
                   onChange={(e) => setReqDesc(e.target.value)}
-                  placeholder="요청 내용을 상세히 입력하세요" 
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm resize-none bg-white flex-1"
+                  placeholder="요청 내용을 입력하세요" 
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:ring-2 focus:ring-blue-100 focus:outline-none shadow-sm transition-all text-sm resize-none bg-white flex-1 min-h-[80px]"
                 ></textarea>
               </div>
             </div>
@@ -396,9 +420,9 @@ export default function DashboardPage() {
             </div>
             <h3 className="text-lg font-bold mb-4 text-[var(--color-gbsa-primary)] relative z-10">단일 기업 검색</h3>
             <form onSubmit={handleSingleSearch} className="relative z-10 flex flex-col flex-1">
-              <div className="flex-1 space-y-3.5">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1 flex items-center gap-1">
+              <div className="flex-1 flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                     기업명 또는 사업자번호
                   </label>
@@ -411,8 +435,8 @@ export default function DashboardPage() {
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1 flex items-center gap-1">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                     지원사업명
                   </label>
@@ -424,18 +448,18 @@ export default function DashboardPage() {
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1 ml-1 flex items-center gap-1">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                     지원과제명
                   </label>
                   <input 
                     type="text" 
-                      value={singleSearchProject}
-                      onChange={(e) => setSingleSearchProject(e.target.value)}
-                      placeholder="예: 인공지능 모듈 개발 (선택)" 
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
-                    />
+                    value={singleSearchProject}
+                    onChange={(e) => setSingleSearchProject(e.target.value)}
+                    placeholder="예: 인공지능 모듈 개발 (선택)" 
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[var(--color-gbsa-primary)] focus:outline-none focus:ring-2 focus:ring-blue-100 shadow-sm transition-all text-sm bg-white"
+                  />
                 </div>
               </div>
               <button 

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Company } from "@/data/mockData";
 import { excelService } from "@/services/excelService";
+import { companyService } from "@/services/companyService";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { normalizeBusinessNumber, formatBusinessNumber } from "@/utils/format";
 
@@ -12,6 +13,8 @@ interface ParsedCandidate {
   location: string;
   supportField: string;
   mainProducts: string;
+  status: "normal" | "duplicate" | "error";
+  existingCompanyId?: string;
 }
 
 interface NewCompanyModalProps {
@@ -65,6 +68,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
   // Bulk Registration State
   const [isUploading, setIsUploading] = useState(false);
   const [bulkPreview, setBulkPreview] = useState<ParsedCandidate[] | null>(null);
+  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -102,14 +106,37 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
         return;
       }
 
-      const previewList: ParsedCandidate[] = parsedCandidates.map((c) => ({
-        companyName: c.companyName || "",
-        businessNumber: c.businessNumber || "",
-        location: c.location || "",
-        supportField: c.supportField || "",
-        mainProducts: c.mainProducts || "",
-      }));
+      const previewList: ParsedCandidate[] = [];
+      const selectedSet = new Set<number>();
+
+      for (const c of parsedCandidates) {
+        const companyName = c.companyName || "";
+        const businessNumber = c.businessNumber || "";
+        const location = c.location || "";
+        const supportField = c.supportField || "";
+        const mainProducts = c.mainProducts || "";
+
+        // 필수값 누락 체크
+        if (!companyName.trim() || !businessNumber.trim()) {
+          previewList.push({ companyName, businessNumber, location, supportField, mainProducts, status: "error" });
+          continue;
+        }
+
+        // DB 중복 검사
+        const normalizedBrn = normalizeBusinessNumber(businessNumber);
+        const existingId = await companyService.getCompanyIdByBusinessNumber(normalizedBrn);
+
+        if (existingId) {
+          previewList.push({ companyName, businessNumber, location, supportField, mainProducts, status: "duplicate", existingCompanyId: existingId });
+        } else {
+          const idx = previewList.length;
+          previewList.push({ companyName, businessNumber, location, supportField, mainProducts, status: "normal" });
+          selectedSet.add(idx);
+        }
+      }
+
       setBulkPreview(previewList);
+      setSelectedIndices(selectedSet);
     } catch (error) {
       console.error("Bulk upload parse error:", error);
       alert("엑셀 파일 파싱 중 오류가 발생했습니다.\n파일이 손상되었거나 암호가 걸려있는지 확인해주세요.");
@@ -120,22 +147,49 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
   };
 
   const handleBulkSubmit = async () => {
-    if (!bulkPreview || bulkPreview.length === 0) return;
+    if (!bulkPreview || bulkPreview.length === 0 || selectedIndices.size === 0) return;
     setSubmitting(true);
     try {
-      const companiesToAdd = bulkPreview.map((c) => ({
-        companyName: c.companyName,
-        businessNumber: normalizeBusinessNumber(c.businessNumber),
-        location: c.location,
-        supportField: c.supportField,
-        mainProducts: c.mainProducts,
-        matchStatus: "NEW" as const,
-        matchScore: 0,
-        histories: [],
-      })) as unknown as Company[];
+      const selectedItems = bulkPreview.filter((_, i) => selectedIndices.has(i));
 
-      await onAdd(companiesToAdd);
+      const newCompanies: Company[] = [];
+      const duplicateUpdates: { id: string; data: Partial<Company> }[] = [];
+
+      for (const c of selectedItems) {
+        if (c.status === "duplicate" && c.existingCompanyId) {
+          duplicateUpdates.push({
+            id: c.existingCompanyId,
+            data: {
+              companyName: c.companyName,
+              businessNumber: normalizeBusinessNumber(c.businessNumber),
+              location: c.location,
+              supportField: c.supportField,
+              mainProducts: c.mainProducts,
+            },
+          });
+        } else if (c.status === "normal") {
+          newCompanies.push({
+            id: `c-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            companyName: c.companyName,
+            businessNumber: normalizeBusinessNumber(c.businessNumber),
+            location: c.location,
+            supportField: c.supportField,
+            mainProducts: c.mainProducts,
+            matchStatus: "NEW",
+            matchScore: 0,
+            histories: [],
+          });
+        }
+      }
+
+      if (newCompanies.length > 0) {
+        await onAdd(newCompanies);
+      }
+      for (const dup of duplicateUpdates) {
+        await companyService.updateCompany(dup.id, dup.data);
+      }
       setBulkPreview(null);
+      setSelectedIndices(new Set());
     } catch (error) {
       console.error("Bulk submit error:", error);
     } finally {
@@ -145,9 +199,34 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
 
   const isMissingRequired = (c: ParsedCandidate) => !c.companyName.trim() || !c.businessNumber.trim();
 
+  const toggleIndex = (idx: number) => {
+    if (!bulkPreview || bulkPreview[idx].status === "error") return;
+    setSelectedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (!bulkPreview) return;
+    const selectableIndices = bulkPreview
+      .map((c, i) => (c.status !== "error" ? i : -1))
+      .filter((i) => i !== -1);
+    const allSelected = selectableIndices.every((i) => selectedIndices.has(i));
+    if (allSelected) {
+      setSelectedIndices(new Set());
+    } else {
+      setSelectedIndices(new Set(selectableIndices));
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity p-4 pt-20">
-      <div className="bg-white w-full max-w-2xl shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative">
+    <div className="fixed inset-0 z-50 transition-opacity" style={{ left: '256px', top: '64px' }}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className={`absolute inset-0 flex items-center justify-center ${bulkPreview ? 'p-[10vh_10vw]' : 'p-8'}`}>
+      <div className={`bg-white w-full shadow-2xl flex flex-col rounded-2xl overflow-hidden animate-fade-in relative ${bulkPreview ? 'max-h-full h-auto' : 'max-w-2xl'}`}>
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
           <div className="flex items-center gap-3">
@@ -186,7 +265,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
         )}
 
         {/* Form Body */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 p-6 overflow-y-auto">
           {activeTab === "SINGLE" && !bulkPreview ? (
             <form id="newCompanyForm" onSubmit={handleSingleSubmit} className="space-y-5">
               <div className="relative">
@@ -279,13 +358,13 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
               </div>
             </form>
           ) : bulkPreview ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col flex-1 min-h-0">
+              <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-gray-50/50 shrink-0">
                 <p className="text-sm font-semibold text-gray-700">
                   총 <span className="text-[var(--color-gbsa-primary)]">{bulkPreview.length}</span>건의 기업이 파싱되었습니다. 확인 후 등록해주세요.
                 </p>
                 <button
-                  onClick={() => setBulkPreview(null)}
+                  onClick={() => { setBulkPreview(null); setSelectedIndices(new Set()); }}
                   className="text-sm text-gray-500 hover:text-gray-700 underline"
                 >
                   다시 업로드
@@ -293,10 +372,19 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
               </div>
 
               {/* Preview Table */}
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="py-2.5 px-3 text-center font-semibold text-gray-600 w-10">
+                        <input
+                          type="checkbox"
+                          checked={bulkPreview.length > 0 && bulkPreview.filter(c => c.status !== "error").length > 0 && bulkPreview.filter(c => c.status !== "error").every((c) => selectedIndices.has(bulkPreview.indexOf(c)))}
+                          onChange={toggleAll}
+                          className="rounded border-gray-300"
+                        />
+                      </th>
                       <th className="py-2.5 px-3 text-left font-semibold text-gray-600 w-10">#</th>
                       <th className="py-2.5 px-3 text-left font-semibold text-gray-600">기업명</th>
                       <th className="py-2.5 px-3 text-left font-semibold text-gray-600">사업자등록번호</th>
@@ -308,22 +396,34 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {bulkPreview.map((c, i) => {
-                      const missing = isMissingRequired(c);
+                      const isSelected = selectedIndices.has(i);
+                      const rowBg = c.status === "duplicate" ? 'bg-orange-50/60' : c.status === "error" ? 'bg-red-50/40' : isSelected ? 'bg-blue-50/40' : '';
                       return (
-                        <tr key={i} className={`${missing ? 'bg-red-50/40' : ''} hover:bg-gray-50/60 transition-colors`}>
+                        <tr key={i} className={`${rowBg} hover:bg-gray-50/60 transition-colors`}>
+                            <td className="py-2 px-3 text-center">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={c.status === "error"}
+                              onChange={() => toggleIndex(i)}
+                              className="rounded border-gray-300 disabled:opacity-30"
+                            />
+                          </td>
                           <td className="py-2 px-3 text-gray-400 text-xs">{i + 1}</td>
-                          <td className={`py-2 px-3 font-medium ${!c.companyName.trim() ? 'text-red-500' : 'text-gray-900'}`}>
+                          <td className={`py-2 px-3 font-medium ${c.status === "error" ? 'text-red-500' : c.status === "duplicate" ? 'text-orange-600' : 'text-gray-900'}`}>
                             {c.companyName || '(빈 값)'}
                           </td>
-                          <td className={`py-2 px-3 font-mono text-xs ${!c.businessNumber.trim() ? 'text-red-500' : 'text-gray-600'}`}>
+                          <td className={`py-2 px-3 font-mono text-xs ${c.status === "error" ? 'text-red-500' : c.status === "duplicate" ? 'text-orange-600' : 'text-gray-600'}`}>
                             {c.businessNumber ? formatBusinessNumber(c.businessNumber) : '(빈 값)'}
                           </td>
                           <td className="py-2 px-3 text-gray-500 max-w-[120px] truncate">{c.location || '-'}</td>
                           <td className="py-2 px-3 text-gray-500 max-w-[100px] truncate">{c.supportField || '-'}</td>
                           <td className="py-2 px-3 text-gray-500 max-w-[100px] truncate">{c.mainProducts || '-'}</td>
                           <td className="py-2 px-3 text-center">
-                            {missing ? (
-                              <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-600 font-semibold">필수값 누락</span>
+                            {c.status === "error" ? (
+                              <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-600 font-semibold">오류</span>
+                            ) : c.status === "duplicate" ? (
+                              <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-orange-100 text-orange-600 font-semibold">중복</span>
                             ) : (
                               <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-600 font-semibold">정상</span>
                             )}
@@ -331,8 +431,9 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
                         </tr>
                       );
                     })}
-                  </tbody>
+                </tbody>
                 </table>
+                </div>
               </div>
             </div>
           ) : (
@@ -404,17 +505,28 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
 
         {/* Bulk Preview Footer */}
         {bulkPreview && (
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3">
-            <div className="text-sm text-gray-500">
-              {bulkPreview.filter(c => !isMissingRequired(c)).length}건 정상
-              {bulkPreview.some(c => isMissingRequired(c)) && (
-                <span className="ml-2 text-red-500">, {bulkPreview.filter(c => isMissingRequired(c)).length}건 필수값 누락</span>
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex gap-2">
+              {bulkPreview.filter(c => c.status === "normal").length > 0 && (
+                <span className="px-3 py-1.5 bg-green-50 text-green-700 rounded-full font-semibold text-sm">
+                  정상 {bulkPreview.filter(c => c.status === "normal").length}건
+                </span>
+              )}
+              {bulkPreview.filter(c => c.status === "duplicate").length > 0 && (
+                <span className="px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full font-semibold text-sm">
+                  중복 {bulkPreview.filter(c => c.status === "duplicate").length}건
+                </span>
+              )}
+              {bulkPreview.filter(c => c.status === "error").length > 0 && (
+                <span className="px-3 py-1.5 bg-red-50 text-red-700 rounded-full font-semibold text-sm">
+                  오류 {bulkPreview.filter(c => c.status === "error").length}건
+                </span>
               )}
             </div>
             <div className="flex gap-3">
               <button 
                 type="button" 
-                onClick={() => setBulkPreview(null)} 
+                onClick={() => { setBulkPreview(null); setSelectedIndices(new Set()); }} 
                 className="px-5 py-2.5 text-sm bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
               >
                 다시 선택
@@ -422,10 +534,10 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
               <button 
                 type="button" 
                 onClick={handleBulkSubmit}
-                disabled={submitting || bulkPreview.length === 0}
+                disabled={submitting || selectedIndices.size === 0}
                 className="px-5 py-2.5 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? "등록 중..." : `${bulkPreview.length}건 등록`}
+                {submitting ? "등록 중..." : `${selectedIndices.size}건 등록`}
               </button>
             </div>
           </div>
@@ -446,9 +558,8 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
           </div>
         )}
 
-        {/* Submitting Overlay */}
-        {submitting && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center">
+        {saving && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-20 flex flex-col items-center justify-center rounded-2xl">
             <div className="w-64">
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--color-gbsa-primary)] animate-progress-bar w-full origin-left"></div>
@@ -457,6 +568,7 @@ export default function NewCompanyModal({ onClose, onAdd }: NewCompanyModalProps
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

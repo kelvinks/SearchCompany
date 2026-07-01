@@ -1,12 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { companyService } from "@/services/companyService";
 import { excelService, ExcelUploadData } from "@/services/excelService";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import BusinessNumber from "@/components/BusinessNumber";
 
-export default function ExcelManagementPage() {
+function ExcelManagementContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const targetFileName = searchParams.get("fileName");
+  const returnCompanyId = searchParams.get("companyId");
+  const targetBizNo = searchParams.get("bizNo")?.replace(/\D/g, "");
   const [uploads, setUploads] = useState<any[]>([]);
   const [selectedUpload, setSelectedUpload] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +30,15 @@ export default function ExcelManagementPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (targetFileName && uploads.length > 0 && !selectedUpload) {
+      const match = uploads.find((u) => u.file_name === targetFileName);
+      if (match) {
+        setSelectedUpload(match);
+      }
+    }
+  }, [uploads, targetFileName]);
 
   const loadData = async () => {
     setLoading(true);
@@ -176,6 +191,18 @@ export default function ExcelManagementPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0 space-y-6">
+      {/* 돌아가기 버튼 */}
+      {returnCompanyId && (
+        <button
+          onClick={() => router.push(`/database?companyId=${returnCompanyId}`)}
+          className="inline-flex items-center gap-2 text-sm text-[var(--color-gbsa-primary)] hover:text-[var(--color-gbsa-primary)]/80 font-medium transition-colors shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          돌아가기
+        </button>
+      )}
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 shrink-0">
         <div className="bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-3 overflow-hidden">
@@ -226,19 +253,24 @@ export default function ExcelManagementPage() {
                 <p className="text-sm mt-1">통합 검색에서 엑셀 파일을 업로드하세요</p>
               </div>
             ) : (
-              uploads.map((upload) => (
+              uploads.map((upload) => {
+                const isTarget = targetFileName === upload.file_name;
+                const isSelected = selectedUpload?.id === upload.id;
+                return (
                 <div key={upload.id}>
                   <div
                     onClick={() => { setSelectedUpload(upload); setEditingId(null); }}
-                    className={`p-4 cursor-pointer transition-colors ${
-                      selectedUpload?.id === upload.id
-                        ? "bg-[var(--color-gbsa-primary)]/5 border-l-4 border-[var(--color-gbsa-primary)]"
-                        : "hover:bg-gray-50 border-l-4 border-transparent"
+                    className={`p-4 cursor-pointer transition-colors border-l-4 ${
+                      isTarget
+                        ? "bg-[var(--color-gbsa-primary)]/10 border-[var(--color-gbsa-primary)]"
+                        : isSelected
+                          ? "bg-gray-50 border-gray-300"
+                          : "hover:bg-gray-50 border-transparent"
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-800 truncate">{upload.file_name}</p>
+                        <p className={`truncate ${isTarget ? "font-bold text-[var(--color-gbsa-primary)]" : "font-medium text-gray-800"}`}>{upload.file_name}</p>
                         <p className="text-xs text-gray-500 mt-1">{formatDate(upload.created_at)}</p>
                         {(upload.org_name || upload.doc_num) && (
                           <p className="text-xs text-gray-400 mt-1 truncate">
@@ -310,7 +342,8 @@ export default function ExcelManagementPage() {
                     </div>
                   )}
                 </div>
-              ))
+              );
+              })
             )}
           </div>
         </div>
@@ -388,17 +421,21 @@ export default function ExcelManagementPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {data.slice(0, 100).map((row: Record<string, any>, idx: number) => (
-                      <tr key={idx} className="hover:bg-gray-50">
+                    {data.slice(0, 100).map((row: Record<string, any>, idx: number) => {
+                      const rowBizNo = Array.from(bizHeaders).map((h) => String(row[h] ?? "").replace(/\D/g, "").trim()).find((v) => v.length === 10) || "";
+                      const isTargetRow = targetBizNo && rowBizNo === targetBizNo;
+                      return (
+                      <tr key={idx} className={`hover:bg-gray-50 ${isTargetRow ? "bg-[var(--color-gbsa-primary)]/10 font-bold" : ""}`}>
                         {headers.map((header: string) => (
-                          <td key={header} className={`py-3 px-4 text-gray-600 max-w-[200px] truncate ${bizHeaders.has(header) ? 'text-center' : 'text-left'}`}>
+                          <td key={header} className={`py-3 px-4 max-w-[200px] truncate ${isTargetRow ? "text-[var(--color-gbsa-primary)] font-semibold" : "text-gray-600"} ${bizHeaders.has(header) ? 'text-center' : 'text-left'}`}>
                             {bizHeaders.has(header)
                               ? <BusinessNumber value={row[header] ?? ""} />
                               : (row[header] ?? "-")}
                           </td>
                         ))}
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
                   );
@@ -457,5 +494,13 @@ export default function ExcelManagementPage() {
       <LoadingOverlay show={saving} message="저장 중..." />
       <LoadingOverlay show={deleting} message="삭제 중..." />
     </div>
+  );
+}
+
+export default function ExcelManagementPage() {
+  return (
+    <Suspense fallback={<LoadingOverlay show={true} message="로딩 중..." />}>
+      <ExcelManagementContent />
+    </Suspense>
   );
 }
