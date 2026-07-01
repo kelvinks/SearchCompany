@@ -1078,4 +1078,31 @@ export const companyService = {
 
     return allResults;
   },
+
+  // 사업자등록번호로 company_id 조회 (지원이력 벌크등록용)
+  async getCompanyIdByBusinessNumber(businessNumber: string): Promise<string | null> {
+    if (!isSupabaseConfigured || !supabase) {
+      // Supabase 미연결 시 로컬 데이터에서 조회
+      if (!isClient) return null;
+      const companies = await this.getCompanies();
+      const normalizedNum = normalizeBusinessNumber(businessNumber);
+      const found = companies.find((c) => normalizeBusinessNumber(c.businessNumber) === normalizedNum);
+      return found?.id ?? null;
+    }
+
+    // 숫자만 추출하여 정규화
+    const normalizedNum = businessNumber.replace(/[^\d]/g, '');
+
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id")
+      .eq("business_number", normalizedNum)
+      .single();
+
+    if (error || !data) {
+      console.warn("Company lookup failed for BRN:", businessNumber, error?.message);
+      return null;
+    }
+    return data.id;
+  },
 };

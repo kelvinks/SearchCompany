@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Company, SupportHistory } from "@/data/mockData";
 import { excelService } from "@/services/excelService";
+import { companyService } from "@/services/companyService";
 import { normalizeBusinessNumber, formatBusinessNumber } from "@/utils/format";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
@@ -107,7 +108,6 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
       for (const row of data) {
         const raw = row.rawData || {};
         
-        // 엑셀 헤더명과 정확히 매칭 (우선순위 제거)
         const brnRaw = String(raw["사업자등록번호"] || "");
         const bNum = normalizeBusinessNumber(brnRaw);
         
@@ -122,16 +122,21 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
         const supAmt = Number(raw["지원금액"] || 0);
         const nts = String(raw["비고"] || "");
 
-
-
-        // 기업명이 파일에 없으므로, 매칭된 기업 정보를 기반으로 설정
-        const matchedCompany = companies.find(
-          (c) => normalizeBusinessNumber(c.businessNumber) === bNum
-        );
+        // DB에서 사업자번호로 company_id 조회
+        let companyId = "UNKNOWN";
+        let companyName = `(매칭기업없음: ${brnRaw})`;
+        if (bNum && bNum.length === 10) {
+          const dbId = await companyService.getCompanyIdByBusinessNumber(bNum);
+          if (dbId) {
+            companyId = dbId;
+            const matched = companies.find((c) => normalizeBusinessNumber(c.businessNumber) === bNum);
+            companyName = matched?.companyName || brnRaw;
+          }
+        }
 
         previewEntries.push({
-          companyId: matchedCompany?.id || "UNKNOWN",
-          companyName: matchedCompany?.companyName || `(매칭기업없음: ${brnRaw})`,
+          companyId,
+          companyName,
           history: {
             year: yr,
             programName: pName,
@@ -156,11 +161,18 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
 
   const handleBulkSubmit = async () => {
     if (!bulkPreview) return;
-    
-    // 유효성 체크: 매칭기업 없는 항목 제외
-    const validEntries = bulkPreview.filter(e => e.companyId !== "UNKNOWN");
+
+    // 유효성 체크: 매칭기업 없거나 필수값 누락한 항목 제외
+    const validEntries = bulkPreview.filter(
+      (e) => e.companyId !== "UNKNOWN" && e.history.year && e.history.programName
+    );
     if (validEntries.length === 0) {
-        alert("등록 가능한 유효한 데이터가 없습니다.");
+        alert("등록 가능한 유효한 데이터가 없습니다.\n매칭 기업이 없거나 필수값(연도, 지원사업명)이 누락된 항목만 있습니다.");
+        return;
+    }
+
+    const excludedCount = bulkPreview.length - validEntries.length;
+    if (excludedCount > 0 && !confirm(`${excludedCount}건은 매칭 기업이 없거나 필수값이 누락되어 제외됩니다.\n${validEntries.length}건만 등록하시겠습니까?`)) {
         return;
     }
 
@@ -360,34 +372,130 @@ export default function NewHistoryModal({ onClose, onAddHistory, companies }: Ne
             </form>
           ) : bulkPreview ? (
             <div className="space-y-4">
-              <p className="text-sm font-semibold text-gray-700">총 {bulkPreview.length}건의 이력이 파싱되었습니다.</p>
-              <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-xl">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-2 py-2">기업명</th>
-                      <th className="px-2 py-2">사업자번호</th>
-                      <th className="px-2 py-2">지원사업명</th>
-                      <th className="px-2 py-2">지원과제명</th>
-                      <th className="px-2 py-2">선정금액</th>
-                      <th className="px-2 py-2">지원금액</th>
-                      <th className="px-2 py-2">비고</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                  {bulkPreview.map((e, i) => (
-                      <tr key={i} className="border-b border-gray-100 last:border-b-0">
-                          <td className="px-2 py-2 truncate max-w-[100px]">{e.companyName}</td>
-                          <td className="px-2 py-2">{e.history.year}</td>
-                          <td className="px-2 py-2 truncate max-w-[100px]">{e.history.programName}</td>
-                          <td className="px-2 py-2 truncate max-w-[100px]">{e.history.projectName || '-'}</td>
-                          <td className="px-2 py-2">{e.history.selectedAmount.toLocaleString()}</td>
-                          <td className="px-2 py-2">{e.history.supportAmount.toLocaleString()}</td>
-                          <td className="px-2 py-2 truncate max-w-[60px]">{e.history.notes || '-'}</td>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-700">
+                  총 <span className="text-[var(--color-gbsa-primary)]">{bulkPreview.length}</span>건의 이력이 파싱되었습니다. 확인 후 등록해주세요.
+                </p>
+                <button
+                  onClick={() => setBulkPreview(null)}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  다시 업로드
+                </button>
+              </div>
+
+              {/* 요약 */}
+              <div className="flex gap-2 text-xs">
+                <span className="px-2 py-1 bg-green-50 text-green-700 rounded-full font-semibold">
+                  정상: {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건
+                </span>
+                {bulkPreview.some(e => e.companyId === "UNKNOWN") && (
+                  <span className="px-2 py-1 bg-red-50 text-red-700 rounded-full font-semibold">
+                    매칭실패: {bulkPreview.filter(e => e.companyId === "UNKNOWN").length}건
+                  </span>
+                )}
+                {bulkPreview.some(e => !e.history.programName || !e.history.year) && (
+                  <span className="px-2 py-1 bg-yellow-50 text-yellow-700 rounded-full font-semibold">
+                    필수값누락: {bulkPreview.filter(e => !e.history.programName || !e.history.year).length}건
+                  </span>
+                )}
+              </div>
+
+              {/* 미리보기 테이블 */}
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr className="border-b border-gray-200">
+                        <th className="px-2 py-2 font-semibold text-gray-600 w-8">#</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600">기업명</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600">사업자번호</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600">연도</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600">지원사업명</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600">지원과제명</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600">상태</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600 text-right">선정금액</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600 text-right">지원금액</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600">비고</th>
+                        <th className="px-2 py-2 font-semibold text-gray-600 text-center w-20">상태</th>
                       </tr>
-                  ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {bulkPreview.map((e, i) => {
+                        const isUnmatched = e.companyId === "UNKNOWN";
+                        const isMissingRequired = !e.history.year || !e.history.programName;
+                        const hasIssue = isUnmatched || isMissingRequired;
+                        return (
+                          <tr key={i} className={`${hasIssue ? 'bg-red-50/40' : ''} hover:bg-gray-50/60 transition-colors`}>
+                            <td className="px-2 py-2 text-gray-400">{i + 1}</td>
+                            <td className={`px-2 py-2 font-medium truncate max-w-[120px] ${isUnmatched ? 'text-red-500' : 'text-gray-900'}`}>
+                              {e.companyName}
+                            </td>
+                            <td className="px-2 py-2 font-mono text-xs text-gray-600">
+                              {e.companyId !== "UNKNOWN" ? e.companyId.slice(0, 8) + "..." : "-"}
+                            </td>
+                            <td className={`px-2 py-2 ${!e.history.year ? 'text-red-500' : 'text-gray-700'}`}>
+                              {e.history.year || '(없음)'}
+                            </td>
+                            <td className={`px-2 py-2 truncate max-w-[120px] ${!e.history.programName ? 'text-red-500' : 'text-gray-700'}`}>
+                              {e.history.programName || '(없음)'}
+                            </td>
+                            <td className="px-2 py-2 truncate max-w-[100px] text-gray-500">
+                              {e.history.projectName || '-'}
+                            </td>
+                            <td className="px-2 py-2">
+                              <span className={`inline-block px-1.5 py-0.5 text-xs rounded ${
+                                e.history.status === '선정' ? 'bg-blue-100 text-blue-700' :
+                                e.history.status === '완료' ? 'bg-green-100 text-green-700' :
+                                e.history.status === '포기' ? 'bg-gray-100 text-gray-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {e.history.status}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 text-right font-mono text-xs text-gray-600">
+                              {e.history.selectedAmount > 0 ? e.history.selectedAmount.toLocaleString() : '-'}
+                            </td>
+                            <td className="px-2 py-2 text-right font-mono text-xs text-gray-600">
+                              {e.history.supportAmount > 0 ? e.history.supportAmount.toLocaleString() : '-'}
+                            </td>
+                            <td className="px-2 py-2 truncate max-w-[80px] text-gray-500">
+                              {e.history.notes || '-'}
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              {isUnmatched ? (
+                                <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-600 font-semibold">매칭실패</span>
+                              ) : isMissingRequired ? (
+                                <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-600 font-semibold">필수값누락</span>
+                              ) : (
+                                <span className="inline-block px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-600 font-semibold">정상</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* 하단 버튼 */}
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-sm text-gray-500">
+                  {bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건 정상
+                  {bulkPreview.some(e => e.companyId === "UNKNOWN" || !e.history.programName || !e.history.year) && (
+                    <span className="text-red-500">
+                      , {bulkPreview.filter(e => e.companyId === "UNKNOWN" || !e.history.programName || !e.history.year).length}건 제외
+                    </span>
+                  )}
+                </p>
+                <button 
+                    onClick={handleBulkSubmit}
+                    disabled={submitting || bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length === 0}
+                    className="px-5 py-2.5 text-sm bg-[var(--color-gbsa-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-gbsa-secondary)] transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {submitting ? "등록 중..." : `${bulkPreview.filter(e => e.companyId !== "UNKNOWN" && e.history.programName && e.history.year).length}건 등록`}
+                </button>
               </div>
               <button 
                   onClick={handleBulkSubmit}
