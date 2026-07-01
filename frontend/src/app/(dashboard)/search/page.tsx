@@ -42,8 +42,14 @@ export default function DashboardPage() {
     const file = files[0];
 
     console.log(`[Upload] Start: ${file.name} (${file.size} bytes, type: ${file.type})`);
-    if (!batchProgramName.trim()) {
-      alert("지원사업명은 필수 항목입니다.");
+    const missing: string[] = [];
+    if (!batchProgramName.trim()) missing.push("지원사업명");
+    if (!reqOrg.trim()) missing.push("요청기관");
+    if (!reqDoc.trim()) missing.push("문서번호");
+    if (!sendDate) missing.push("접수일");
+    if (!requestDate) missing.push("요청일");
+    if (missing.length > 0) {
+      alert(`다음 항목은 필수입니다:\n\n${missing.join(", ")}`);
       setIsUploading(false);
       return;
     }
@@ -205,7 +211,10 @@ export default function DashboardPage() {
   // Single Search Handler
   const handleSingleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!singleSearchQuery.trim()) return;
+    if (!singleSearchQuery.trim()) {
+      alert("기업명 또는 사업자번호는 필수 항목입니다.");
+      return;
+    }
 
     setSearching(true);
     try {
@@ -266,7 +275,21 @@ export default function DashboardPage() {
         
         {/* Left Column: Batch Upload Area */}
         <div className="lg:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border-2 border-dashed border-blue-300 p-8 flex flex-col items-center justify-start transition-colors relative h-full">
-          <h3 className="text-lg font-bold mb-4 text-[var(--color-gbsa-primary)] relative z-10 w-full text-left">대량 기업 검색</h3>
+          <div className="flex items-center gap-3 mb-4 relative z-10 w-full">
+            <div className="p-2.5 bg-blue-50 rounded-xl text-[var(--color-gbsa-primary)] flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="3" y1="15" x2="21" y2="15" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                <line x1="15" y1="3" x2="15" y2="21" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-[var(--color-gbsa-primary)] leading-tight">대량 기업 검색</h3>
+              <p className="text-xs text-gray-400 mt-0.5 font-medium">엑셀 파일을 업로드하여 다수의 기업을 한 번에 중복 수혜 검증합니다.</p>
+            </div>
+          </div>
           
           {/* Top Form Fields */}
           <div className="w-full grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 text-left relative z-10" onClick={(e) => e.stopPropagation()}>
@@ -276,7 +299,7 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                  요청기관
+                  요청기관 <span className="text-red-500">*</span>
                 </label>
                 <input 
                   type="text" 
@@ -290,7 +313,7 @@ export default function DashboardPage() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                  문서번호
+                  문서번호 <span className="text-red-500">*</span>
                 </label>
                 <input 
                   type="text" 
@@ -305,7 +328,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    접수일
+                    접수일 <span className="text-red-500">*</span>
                   </label>
                   <input 
                     type="date" 
@@ -317,7 +340,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    요청일
+                    요청일 <span className="text-red-500">*</span>
                   </label>
                   <input 
                     type="date" 
@@ -418,13 +441,23 @@ export default function DashboardPage() {
                 <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-bold mb-4 text-[var(--color-gbsa-primary)] relative z-10">단일 기업 검색</h3>
+            <div className="flex items-center gap-3 mb-4 relative z-10">
+              <div className="p-2.5 bg-blue-50 rounded-xl text-[var(--color-gbsa-primary)] flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[var(--color-gbsa-primary)] leading-tight">단일 기업 검색</h3>
+                <p className="text-xs text-gray-400 mt-0.5 font-medium">기업명 또는 사업자번호로 개별 기업의 중복 수혜 이력을 검증합니다.</p>
+              </div>
+            </div>
             <form onSubmit={handleSingleSearch} className="relative z-10 flex flex-col flex-1">
               <div className="flex-1 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                    기업명 또는 사업자번호
+                    기업명 또는 사업자번호 <span className="text-red-500">*</span>
                   </label>
                   <input 
                     type="text" 

@@ -26,23 +26,36 @@ export default function VerificationResultsPage() {
   } | null>(null);
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    // Check for search results from 통합검색 page
-    if (typeof window !== "undefined") {
-      const stored = sessionStorage.getItem("gbsa_search_results");
-      if (stored) {
-        try {
-          const data = JSON.parse(stored);
-          sessionStorage.removeItem("gbsa_search_results");
-          setSearchPopup(data);
-        } catch {
-          // ignore parse errors
+    const init = async () => {
+      // 1. 세션 스토리지에서 검색 결과 확인
+      if (typeof window !== "undefined") {
+        const stored = sessionStorage.getItem("gbsa_search_results");
+        if (stored) {
+          try {
+            const data = JSON.parse(stored);
+            sessionStorage.removeItem("gbsa_search_results");
+            setSearchPopup(data);
+            // 대량 검색 결과가 있으면 매칭 데이터(db* 필드 포함)를 검증 테이블에 사용
+            if (data.type === "BATCH" && data.results && data.results.length > 0) {
+              setCompanies(data.results);
+              setLoading(false);
+              return;
+            }
+            // 단일 검색 결과도 검증 테이블에 포함
+            if (data.type === "SINGLE" && data.result) {
+              setCompanies([data.result]);
+              setLoading(false);
+              return;
+            }
+          } catch {
+            // ignore parse errors
+          }
         }
       }
-    }
+      // 2. 검색 결과가 없으면 DB에서 로드
+      await loadData();
+    };
+    init();
   }, []);
 
   const loadData = async () => {

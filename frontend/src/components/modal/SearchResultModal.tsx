@@ -159,7 +159,9 @@ export default function SearchResultModal({
                     <th className="py-3 px-4 font-semibold text-left">기업명</th>
                     <th className="py-3 px-4 font-semibold text-center">사업자등록번호</th>
                     <th className="py-3 px-4 font-semibold text-left">지원사업명</th>
-                    <th className="py-3 px-4 font-semibold text-center">소재지</th>
+                    <th className="py-3 px-4 font-semibold text-left">내부DB 기업명</th>
+                    <th className="py-3 px-4 font-semibold text-center">내부DB 소재지</th>
+                    <th className="py-3 px-4 font-semibold text-center">내부DB 지원분야</th>
                     <th className="py-3 px-4 font-semibold text-right">누적지원금액</th>
                   </tr>
                 </thead>
@@ -178,7 +180,9 @@ export default function SearchResultModal({
                           <BusinessNumber value={company.businessNumber} />
                         </td>
                         <td className="py-3 px-4 text-gray-500">{company.appliedProgramName || "-"}</td>
-                        <td className="py-3 px-4 text-center text-gray-500">{extractSiGun(company.location)}</td>
+                        <td className="py-3 px-4 text-gray-700 font-medium">{company.dbCompanyName || "-"}</td>
+                        <td className="py-3 px-4 text-center text-gray-500">{extractSiGun(company.dbLocation || company.location)}</td>
+                        <td className="py-3 px-4 text-center text-gray-500">{company.dbSupportField || company.supportField || "-"}</td>
                         <td className="py-3 px-4 text-right">
                           {validTotal > 0 ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[var(--color-gbsa-primary)] text-white text-xs font-bold">
